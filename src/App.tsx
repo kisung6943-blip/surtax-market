@@ -456,15 +456,7 @@ export default function App() {
             onUpdate={(day, cat, amt) => handleUpdateAd(selectedMonth, day, cat, amt)} 
           />
 
-          <DailyEntryTable 
-            title="일별 기타 지출 입력/집계" 
-            items={currentMonthData.expenditures} 
-            month={selectedMonth} 
-            categories={["식비/간식비", "택배/운송비", "소모품비", "임대료/통신비", "기타"]} 
-            icon={<TrendingDown className="w-6 h-6 text-red-400" />} 
-            color="red" 
-            onUpdate={(day, cat, amt) => handleUpdateExpenditure(selectedMonth, day, cat, amt)} 
-          />
+
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -483,6 +475,18 @@ export default function App() {
                     placeholder="스토어명 직접 입력"
                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black" 
                   />
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {["스마트스토어", "쿠팡윙", "쿠팡로켓배송", "오늘의집매출", "옥션", "G마켓", "11번가", "홈페이지", "ns홈쇼핑", "에이블리", "토스쇼핑", "도매", "현금입금", "기타"].map(cat => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setNewRevCategory(cat)}
+                        className={`text-[10px] font-black px-2 py-1 rounded-lg border transition-all ${newRevCategory === cat ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300'}`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
                   <datalist id="revenue-options">
                     <option value="스마트스토어" />
                     <option value="쿠팡윙" />
@@ -538,6 +542,18 @@ export default function App() {
                     placeholder="지출 항목 직접 입력"
                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black" 
                   />
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {["식비/간식비", "택배/운송비", "소모품비", "네이버광고비", "쿠팡로켓광고", "쿠팡윙광고", "기타"].map(cat => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setNewExpVendor(cat)}
+                        className={`text-[10px] font-black px-2 py-1 rounded-lg border transition-all ${newExpVendor === cat ? 'bg-red-500 border-red-500 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-red-300'}`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
                   <datalist id="expenditure-options">
                     <option value="식비/간식비" />
                     <option value="택배/운송비" />
