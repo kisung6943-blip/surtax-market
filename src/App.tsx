@@ -696,8 +696,8 @@ function DailyRevenueSummary({ revenues, month, onUpdateRevenue }: { revenues: R
             <thead className="text-[10px] font-black text-slate-600 uppercase tracking-widest bg-slate-50 sticky top-0 z-10 shadow-sm">
               <tr>
                 <th className="px-4 py-4 min-w-[50px] whitespace-nowrap">날짜</th>
-                {revCategories.map(cat => <th key={cat} className="px-2 py-4 min-w-[80px] whitespace-nowrap text-center">{cat}</th>)}
-                <th className="px-4 py-4 min-w-[80px] text-right whitespace-nowrap">일별 합계</th>
+                {revCategories.map(cat => <th key={cat} className="px-2 py-4 min-w-[100px] whitespace-nowrap text-center">{cat}</th>)}
+                <th className="px-4 py-4 min-w-[100px] text-right whitespace-nowrap">일별 합계</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -711,7 +711,7 @@ function DailyRevenueSummary({ revenues, month, onUpdateRevenue }: { revenues: R
                         value={d.catAmounts[cat] > 0 ? d.catAmounts[cat].toLocaleString() : ""} 
                         onChange={(e) => onUpdateRevenue(d.day, cat, parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)}
                         placeholder="0"
-                        className="w-full min-w-[60px] bg-transparent border-none font-black text-blue-500 focus:ring-1 focus:ring-blue-100 rounded-lg px-2 py-1 text-sm outline-none text-center"
+                        className="w-full min-w-[90px] bg-transparent border-none font-black text-blue-500 focus:ring-1 focus:ring-blue-100 rounded-lg px-2 py-1 text-sm outline-none text-center"
                       />
                     </td>
                   ))}
