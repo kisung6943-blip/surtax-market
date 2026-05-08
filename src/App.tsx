@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
-type RevenueCategory = "일반매출" | "도매" | "쿠팡로켓배송" | "현금입금";
+type RevenueCategory = string;
 
 type RevenueEntry = {
   id: string;
@@ -69,14 +69,14 @@ export default function App() {
 
   // Form states
   const [newRevAmount, setNewRevAmount] = useState("");
-  const [newRevCategory, setNewRevCategory] = useState<RevenueCategory>("일반매출");
+  const [newRevCategory, setNewRevCategory] = useState<RevenueCategory>("스마트스토어");
   const [newRevDay, setNewRevDay] = useState(new Date().getDate().toString().padStart(2, '0'));
 
   const [newPurVendor, setNewPurVendor] = useState("");
   const [newPurAmount, setNewPurAmount] = useState("");
   const [newPurDay, setNewPurDay] = useState(new Date().getDate().toString().padStart(2, '0'));
 
-  const [newExpVendor, setNewExpVendor] = useState("네이버광고비");
+  const [newExpVendor, setNewExpVendor] = useState("");
   const [newExpAmount, setNewExpAmount] = useState("");
   const [newExpDay, setNewExpDay] = useState(new Date().getDate().toString().padStart(2, '0'));
 
@@ -257,7 +257,7 @@ export default function App() {
       }
       return d;
     }));
-    setNewExpVendor("네이버광고비");
+    setNewExpVendor("");
     setNewExpAmount("");
   };
 
@@ -402,12 +402,20 @@ export default function App() {
               <div className="grid grid-cols-2 gap-4">
                 <DaySelect value={newRevDay} onChange={setNewRevDay} month={selectedMonth} />
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">카테고리</label>
+                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">스토어명</label>
                   <select value={newRevCategory} onChange={(e) => setNewRevCategory(e.target.value as RevenueCategory)} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black">
-                    <option value="일반매출">일반매출</option>
+                    <option value="스마트스토어">스마트스토어</option>
+                    <option value="쿠팡(윙)">쿠팡(윙)</option>
+                    <option value="오늘의집">오늘의집</option>
+                    <option value="옥션">옥션</option>
+                    <option value="g마켓">g마켓</option>
+                    <option value="11번가">11번가</option>
+                    <option value="홈페이지">홈페이지</option>
+                    <option value="농협몰">농협몰</option>
+                    <option value="에이블리">에이블리</option>
+                    <option value="토스">토스</option>
                     <option value="도매">도매</option>
-                    <option value="쿠팡로켓배송">쿠팡로켓배송</option>
-                    <option value="현금입금">현금입금</option>
+                    <option value="기타">기타</option>
                   </select>
                 </div>
               </div>
@@ -440,12 +448,7 @@ export default function App() {
                 <DaySelect value={newExpDay} onChange={setNewExpDay} month={selectedMonth} />
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">지출항목</label>
-                  <select value={newExpVendor} onChange={(e) => setNewExpVendor(e.target.value)} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black">
-                    <option value="식비/간식비">식비/간식비</option>
-                    <option value="택배/운송비">택배/운송비</option>
-                    <option value="소모품비">소모품비</option>
-                    <option value="기타">기타</option>
-                  </select>
+                  <input type="text" value={newExpVendor} onChange={(e) => setNewExpVendor(e.target.value)} placeholder="항목 직접 입력" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black" />
                 </div>
               </div>
               <AmountInput value={newExpAmount} onChange={setNewExpAmount} focusColor="red" />
