@@ -272,6 +272,51 @@ export default function App() {
       return d;
     }));
   };
+  const handleUpdateRevenue = (month: number, day: string, category: string, amount: number) => {
+    setData(prev => prev.map(d => {
+      if (d.month === month) {
+        const otherRevenues = (d.revenues || []).filter(r => !(r.date === day && r.category === category));
+        if (amount > 0) {
+          return {
+            ...d,
+            revenues: [...otherRevenues, { 
+              id: Date.now().toString() + Math.random().toString(), 
+              vendor: "", 
+              category,
+              amount, 
+              date: day 
+            }].sort((a, b) => a.date.localeCompare(b.date) || a.category.localeCompare(b.category))
+          };
+        } else {
+          return { ...d, revenues: otherRevenues };
+        }
+      }
+      return d;
+    }));
+  };
+
+  const handleUpdateExpenditure = (month: number, day: string, vendor: string, amount: number) => {
+    setData(prev => prev.map(d => {
+      if (d.month === month) {
+        const otherExps = (d.expenditures || []).filter(e => !(e.date === day && e.vendor === vendor));
+        if (amount > 0) {
+          return {
+            ...d,
+            expenditures: [...otherExps, { 
+              id: Date.now().toString() + Math.random().toString(), 
+              vendor, 
+              amount, 
+              date: day 
+            }].sort((a, b) => a.date.localeCompare(b.date) || a.vendor.localeCompare(b.vendor))
+          };
+        } else {
+          return { ...d, expenditures: otherExps };
+        }
+      }
+      return d;
+    }));
+  };
+
   const handleUpdateAd = (month: number, day: string, category: string, amount: number) => {
     setData(prev => prev.map(d => {
       if (d.month === month) {
@@ -389,11 +434,38 @@ export default function App() {
           ))}
         </div>
 
-        <DailyAdSummary 
-          purchases={currentMonthData.purchases} 
-          month={selectedMonth} 
-          onUpdateAd={(day, cat, amt) => handleUpdateAd(selectedMonth, day, cat, amt)} 
-        />
+        <div className="space-y-6">
+          <DailyEntryTable 
+            title="일별 매출 입력/집계" 
+            items={currentMonthData.revenues} 
+            month={selectedMonth} 
+            categories={["스마트스토어", "쿠팡윙", "쿠팡로켓배송", "오늘의집매출", "옥션", "G마켓", "11번가", "도매", "현금입금", "기타"]} 
+            icon={<TrendingUp className="w-6 h-6 text-blue-400" />} 
+            color="blue" 
+            onUpdate={(day, cat, amt) => handleUpdateRevenue(selectedMonth, day, cat, amt)}
+            dataKey="category"
+          />
+
+          <DailyEntryTable 
+            title="일별 광고비(매입) 입력/집계" 
+            items={currentMonthData.purchases} 
+            month={selectedMonth} 
+            categories={["네이버광고비", "쿠팡로켓광고", "쿠팡윙광고", "오늘의집 광고비"]} 
+            icon={<Percent className="w-6 h-6 text-purple-400" />} 
+            color="orange" 
+            onUpdate={(day, cat, amt) => handleUpdateAd(selectedMonth, day, cat, amt)} 
+          />
+
+          <DailyEntryTable 
+            title="일별 기타 지출 입력/집계" 
+            items={currentMonthData.expenditures} 
+            month={selectedMonth} 
+            categories={["식비/간식비", "택배/운송비", "소모품비", "임대료/통신비", "기타"]} 
+            icon={<TrendingDown className="w-6 h-6 text-red-400" />} 
+            color="red" 
+            onUpdate={(day, cat, amt) => handleUpdateExpenditure(selectedMonth, day, cat, amt)} 
+          />
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Revenue */}
@@ -402,13 +474,13 @@ export default function App() {
               <div className="grid grid-cols-2 gap-4">
                 <DaySelect value={newRevDay} onChange={setNewRevDay} month={selectedMonth} />
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">카테고리</label>
+                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">스토어명</label>
                   <input 
                     list="revenue-options"
                     type="text" 
                     value={newRevCategory} 
                     onChange={(e) => setNewRevCategory(e.target.value)} 
-                    placeholder="카테고리 직접 입력"
+                    placeholder="스토어명 직접 입력"
                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black" 
                   />
                   <datalist id="revenue-options">
@@ -559,98 +631,97 @@ function ItemList({ items, onRemove, color }: any) {
   );
 }
 
-const adCategories = ["네이버광고비", "쿠팡로켓광고", "쿠팡윙광고", "오늘의집 광고비"];
-
-function DailyAdSummary({ purchases, month, onUpdateAd }: { purchases: Entry[], month: number, onUpdateAd: (day: string, cat: string, amt: number) => void }) {
+function DailyEntryTable({ 
+  items, 
+  month, 
+  categories, 
+  title, 
+  icon, 
+  color, 
+  onUpdate,
+  dataKey = "vendor"
+}: { 
+  items: any[], 
+  month: number, 
+  categories: string[], 
+  title: string, 
+  icon: React.ReactNode, 
+  color: string, 
+  onUpdate: (day: string, cat: string, amt: number) => void,
+  dataKey?: "vendor" | "category"
+}) {
   const daysInMonth = new Date(2026, month, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
 
-  const dailyData = days.map(day => {
-    const dayExps = purchases.filter(e => e.date === day);
-    const naver = dayExps.filter(e => e.vendor === "네이버광고비").reduce((sum, e) => sum + e.amount, 0);
-    const coupangRocket = dayExps.filter(e => e.vendor === "쿠팡로켓광고").reduce((sum, e) => sum + e.amount, 0);
-    const coupangWing = dayExps.filter(e => e.vendor === "쿠팡윙광고").reduce((sum, e) => sum + e.amount, 0);
-    const ohouse = dayExps.filter(e => e.vendor === "오늘의집 광고비").reduce((sum, e) => sum + e.amount, 0);
-    return { day, naver, coupangRocket, coupangWing, ohouse, total: naver + coupangRocket + coupangWing + ohouse };
+  const tableData = days.map(day => {
+    const dayItems = items.filter(e => e.date === day);
+    const catData: any = { day };
+    let total = 0;
+    categories.forEach(cat => {
+      const amt = dayItems.filter(e => (e as any)[dataKey] === cat).reduce((sum, e) => sum + e.amount, 0);
+      catData[cat] = amt;
+      total += amt;
+    });
+    return { ...catData, total };
   });
 
   const formatKRW = (amount: number) => new Intl.NumberFormat('ko-KR').format(amount);
+  
+  const textColors: any = { blue: "text-blue-600", orange: "text-orange-600", red: "text-red-600" };
+  const ringColors: any = { blue: "focus:ring-blue-100", orange: "focus:ring-orange-100", red: "focus:ring-red-100" };
 
   return (
-    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem] overflow-hidden mb-8">
+    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem] overflow-hidden">
       <CardHeader className="bg-slate-900 text-white pb-6 pt-8">
         <div className="flex justify-between items-center">
           <CardTitle className="text-xl font-black flex items-center gap-2">
-            <Percent className="w-6 h-6 text-purple-400" /> {month}월 일별 광고비 입력/집계
+            {icon} {month}월 {title}
           </CardTitle>
-          <p className="text-xs font-black text-slate-600">금액을 클릭하면 바로 수정할 수 있습니다.</p>
+          <p className="hidden md:block text-xs font-black text-slate-500">금액을 입력하면 실시간으로 저장됩니다.</p>
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="max-h-[500px] overflow-y-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="text-[10px] font-black text-slate-600 uppercase tracking-widest bg-slate-50 sticky top-0 z-10 shadow-sm">
+        <div className="max-h-[450px] overflow-auto no-scrollbar">
+          <table className="w-full text-sm text-left border-collapse min-w-[800px]">
+            <thead className="text-[10px] font-black text-slate-600 uppercase tracking-widest bg-slate-50 sticky top-0 z-20 shadow-sm">
               <tr>
-                <th className="px-6 py-4">날짜</th>
-                <th className="px-6 py-4">네이버광고</th>
-                <th className="px-6 py-4">쿠팡로켓</th>
-                <th className="px-6 py-4">쿠팡윙</th>
-                <th className="px-6 py-4">오늘의집</th>
-                <th className="px-6 py-4 text-right">일별 합계</th>
+                <th className="px-6 py-4 sticky left-0 bg-slate-50 z-30">날짜</th>
+                {categories.map(cat => (
+                  <th key={cat} className="px-6 py-4">{cat}</th>
+                ))}
+                <th className="px-6 py-4 text-right sticky right-0 bg-slate-50 z-30">합계</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {dailyData.map((d) => (
+              {tableData.map((d) => (
                 <tr key={d.day} className={`hover:bg-slate-50 transition-colors ${d.total > 0 ? "bg-white" : "bg-slate-50/20 opacity-60"}`}>
-                  <td className="px-6 py-4 font-black text-slate-700">{d.day}일</td>
-                  <td className="px-4 py-2">
-                    <input 
-                      type="text" 
-                      value={d.naver > 0 ? d.naver.toLocaleString() : ""} 
-                      onChange={(e) => onUpdateAd(d.day, "네이버광고비", parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)}
-                      placeholder="0"
-                      className="w-full bg-transparent border-none font-black text-blue-600 focus:ring-1 focus:ring-blue-100 rounded-lg px-2 py-1 text-sm outline-none"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input 
-                      type="text" 
-                      value={d.coupangRocket > 0 ? d.coupangRocket.toLocaleString() : ""} 
-                      onChange={(e) => onUpdateAd(d.day, "쿠팡로켓광고", parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)}
-                      placeholder="0"
-                      className="w-full bg-transparent border-none font-black text-orange-500 focus:ring-1 focus:ring-orange-100 rounded-lg px-2 py-1 text-sm outline-none"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input 
-                      type="text" 
-                      value={d.coupangWing > 0 ? d.coupangWing.toLocaleString() : ""} 
-                      onChange={(e) => onUpdateAd(d.day, "쿠팡윙광고", parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)}
-                      placeholder="0"
-                      className="w-full bg-transparent border-none font-black text-orange-400 focus:ring-1 focus:ring-orange-100 rounded-lg px-2 py-1 text-sm outline-none"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input 
-                      type="text" 
-                      value={d.ohouse > 0 ? d.ohouse.toLocaleString() : ""} 
-                      onChange={(e) => onUpdateAd(d.day, "오늘의집 광고비", parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)}
-                      placeholder="0"
-                      className="w-full bg-transparent border-none font-black text-red-500 focus:ring-1 focus:ring-red-100 rounded-lg px-2 py-1 text-sm outline-none"
-                    />
-                  </td>
-                  <td className="px-6 py-4 font-black text-slate-900 text-right bg-slate-50/50">{formatKRW(d.total)}원</td>
+                  <td className="px-6 py-4 font-black text-slate-700 sticky left-0 bg-inherit z-10 border-r border-slate-50">{d.day}일</td>
+                  {categories.map(cat => (
+                    <td key={cat} className="px-2 py-1">
+                      <input 
+                        type="text" 
+                        value={d[cat] > 0 ? d[cat].toLocaleString() : ""} 
+                        onChange={(e) => onUpdate(d.day, cat, parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)}
+                        placeholder="0"
+                        className={`w-full bg-transparent border-none font-black text-right pr-4 rounded-lg px-2 py-2 text-sm outline-none focus:ring-1 ${textColors[color]} ${ringColors[color]}`}
+                      />
+                    </td>
+                  ))}
+                  <td className="px-6 py-4 font-black text-slate-900 text-right sticky right-0 bg-slate-50/90 z-10 border-l border-slate-50">{formatKRW(d.total)}원</td>
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-slate-900 text-white font-black sticky bottom-0 z-10 shadow-up">
+            <tfoot className="bg-slate-900 text-white font-black sticky bottom-0 z-20 shadow-up">
               <tr>
-                <td className="px-6 py-4">총계</td>
-                <td className="px-6 py-4 text-blue-300">{formatKRW(dailyData.reduce((sum, d) => sum + d.naver, 0))}</td>
-                <td className="px-6 py-4 text-orange-300">{formatKRW(dailyData.reduce((sum, d) => sum + d.coupangRocket, 0))}</td>
-                <td className="px-6 py-4 text-orange-200">{formatKRW(dailyData.reduce((sum, d) => sum + d.coupangWing, 0))}</td>
-                <td className="px-6 py-4 text-red-300">{formatKRW(dailyData.reduce((sum, d) => sum + d.ohouse, 0))}</td>
-                <td className="px-6 py-4 text-right text-purple-300">{formatKRW(dailyData.reduce((sum, d) => sum + d.total, 0))}원</td>
+                <td className="px-6 py-4 sticky left-0 bg-slate-900 z-30">총계</td>
+                {categories.map(cat => (
+                  <td key={cat} className="px-6 py-4 text-slate-300 text-right pr-6">
+                    {formatKRW(tableData.reduce((sum, d) => sum + d[cat], 0))}
+                  </td>
+                ))}
+                <td className="px-6 py-4 text-right text-purple-300 sticky right-0 bg-slate-900 z-30">
+                  {formatKRW(tableData.reduce((sum, d) => sum + d.total, 0))}원
+                </td>
               </tr>
             </tfoot>
           </table>
