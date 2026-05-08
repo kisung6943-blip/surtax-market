@@ -294,6 +294,29 @@ export default function App() {
     }));
   };
 
+  const handleUpdateRevenue = (month: number, day: string, category: string, amount: number) => {
+    setData(prev => prev.map(d => {
+      if (d.month === month) {
+        const otherRevenues = (d.revenues || []).filter(r => !(r.date === day && r.category === category));
+        if (amount > 0) {
+          return {
+            ...d,
+            revenues: [...otherRevenues, { 
+              id: Date.now().toString() + Math.random().toString(), 
+              category: category as RevenueCategory,
+              vendor: "", 
+              amount, 
+              date: day 
+            }].sort((a, b) => a.date.localeCompare(b.date) || a.category.localeCompare(b.category))
+          };
+        } else {
+          return { ...d, revenues: otherRevenues };
+        }
+      }
+      return d;
+    }));
+  };
+
   // Calculations
   const calculateTotal = (items: any[]) => items?.reduce((sum, r) => sum + r.amount, 0) || 0;
 
@@ -388,6 +411,12 @@ export default function App() {
             <button key={m.month} onClick={() => setSelectedMonth(m.month)} className={`px-6 py-3 rounded-2xl whitespace-nowrap text-sm font-black transition snap-start border-2 ${selectedMonth === m.month ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/20' : 'bg-white text-slate-700 hover:bg-slate-100 border-white shadow-sm'}`}>{m.month}월</button>
           ))}
         </div>
+
+        <DailyRevenueSummary 
+          revenues={currentMonthData.revenues} 
+          month={selectedMonth} 
+          onUpdateRevenue={(day, cat, amt) => handleUpdateRevenue(selectedMonth, day, cat, amt)} 
+        />
 
         <DailyAdSummary 
           purchases={currentMonthData.purchases} 
@@ -624,6 +653,81 @@ function DailyAdSummary({ purchases, month, onUpdateAd }: { purchases: Entry[], 
                 <td className="px-6 py-4 text-orange-200">{formatKRW(dailyData.reduce((sum, d) => sum + d.coupangWing, 0))}</td>
                 <td className="px-6 py-4 text-red-300">{formatKRW(dailyData.reduce((sum, d) => sum + d.ohouse, 0))}</td>
                 <td className="px-6 py-4 text-right text-purple-300">{formatKRW(dailyData.reduce((sum, d) => sum + d.total, 0))}원</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+const revCategories = ["스마트스토어", "쿠팡윙", "쿠팡로켓배송", "오늘의집매출", "옥션", "G마켓", "11번가", "도매", "현금입금", "기타"];
+
+function DailyRevenueSummary({ revenues, month, onUpdateRevenue }: { revenues: RevenueEntry[], month: number, onUpdateRevenue: (day: string, cat: string, amt: number) => void }) {
+  const daysInMonth = new Date(2026, month, 0).getDate();
+  const days = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
+
+  const dailyData = days.map(day => {
+    const dayRevs = revenues.filter(e => e.date === day);
+    const catAmounts = revCategories.reduce((acc, cat) => {
+      acc[cat] = dayRevs.filter(e => e.category === cat).reduce((sum, e) => sum + e.amount, 0);
+      return acc;
+    }, {} as Record<string, number>);
+    const total = Object.values(catAmounts).reduce((sum, amt) => sum + amt, 0);
+    return { day, catAmounts, total };
+  });
+
+  const formatKRW = (amount: number) => new Intl.NumberFormat('ko-KR').format(amount);
+
+  return (
+    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem] overflow-hidden mb-8">
+      <CardHeader className="bg-slate-900 text-white pb-6 pt-8">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-xl font-black flex items-center gap-2">
+            <TrendingUp className="w-6 h-6 text-blue-400" /> {month}월 일별 매출 입력/집계
+          </CardTitle>
+          <p className="text-xs font-black text-slate-600">금액을 입력하면 실시간으로 저장됩니다.</p>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="max-h-[500px] overflow-x-auto overflow-y-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="text-[10px] font-black text-slate-600 uppercase tracking-widest bg-slate-50 sticky top-0 z-10 shadow-sm">
+              <tr>
+                <th className="px-4 py-4 min-w-[50px] whitespace-nowrap">날짜</th>
+                {revCategories.map(cat => <th key={cat} className="px-2 py-4 min-w-[80px] whitespace-nowrap text-center">{cat}</th>)}
+                <th className="px-4 py-4 min-w-[80px] text-right whitespace-nowrap">일별 합계</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {dailyData.map((d) => (
+                <tr key={d.day} className={`hover:bg-slate-50 transition-colors ${d.total > 0 ? "bg-white" : "bg-slate-50/20 opacity-60"}`}>
+                  <td className="px-4 py-4 font-black text-slate-700 whitespace-nowrap">{d.day}일</td>
+                  {revCategories.map(cat => (
+                    <td key={cat} className="px-2 py-2">
+                      <input 
+                        type="text" 
+                        value={d.catAmounts[cat] > 0 ? d.catAmounts[cat].toLocaleString() : ""} 
+                        onChange={(e) => onUpdateRevenue(d.day, cat, parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)}
+                        placeholder="0"
+                        className="w-full min-w-[60px] bg-transparent border-none font-black text-blue-500 focus:ring-1 focus:ring-blue-100 rounded-lg px-2 py-1 text-sm outline-none text-center"
+                      />
+                    </td>
+                  ))}
+                  <td className="px-4 py-4 font-black text-slate-900 text-right bg-slate-50/50 whitespace-nowrap">{formatKRW(d.total)}원</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="bg-slate-900 text-white font-black sticky bottom-0 z-10 shadow-up">
+              <tr>
+                <td className="px-4 py-4 whitespace-nowrap">총계</td>
+                {revCategories.map(cat => (
+                  <td key={cat} className="px-2 py-4 text-center text-blue-300 whitespace-nowrap">
+                    {formatKRW(dailyData.reduce((sum, d) => sum + d.catAmounts[cat], 0))}
+                  </td>
+                ))}
+                <td className="px-4 py-4 text-right text-purple-300 whitespace-nowrap">{formatKRW(dailyData.reduce((sum, d) => sum + d.total, 0))}원</td>
               </tr>
             </tfoot>
           </table>
