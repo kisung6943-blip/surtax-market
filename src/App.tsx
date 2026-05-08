@@ -69,7 +69,7 @@ export default function App() {
 
   // Form states
   const [newRevAmount, setNewRevAmount] = useState("");
-  const [newRevCategory, setNewRevCategory] = useState<RevenueCategory>("스마트스토어");
+  const [newRevCategory, setNewRevCategory] = useState<RevenueCategory>("11번가");
   const [newRevDay, setNewRevDay] = useState(new Date().getDate().toString().padStart(2, '0'));
 
   const [newPurVendor, setNewPurVendor] = useState("");
@@ -433,15 +433,15 @@ export default function App() {
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">스토어명</label>
                   <select value={newRevCategory} onChange={(e) => setNewRevCategory(e.target.value as RevenueCategory)} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black">
+                    <option value="11번가">11번가</option>
+                    <option value="g마켓">g마켓</option>
+                    <option value="ns홈쇼핑">ns홈쇼핑</option>
                     <option value="스마트스토어">스마트스토어</option>
-                    <option value="쿠팡(윙)">쿠팡(윙)</option>
+                    <option value="에이블리">에이블리</option>
                     <option value="오늘의집">오늘의집</option>
                     <option value="옥션">옥션</option>
-                    <option value="g마켓">g마켓</option>
-                    <option value="11번가">11번가</option>
-                    <option value="홈페이지">홈페이지</option>
-                    <option value="농협몰">농협몰</option>
-                    <option value="에이블리">에이블리</option>
+                    <option value="카페24">카페24</option>
+                    <option value="쿠팡(윙)">쿠팡(윙)</option>
                     <option value="토스">토스</option>
                     <option value="도매">도매</option>
                     <option value="기타">기타</option>
@@ -662,7 +662,7 @@ function DailyAdSummary({ purchases, month, onUpdateAd }: { purchases: Entry[], 
   );
 }
 
-const revCategories = ["스마트스토어", "쿠팡윙", "쿠팡로켓배송", "오늘의집매출", "옥션", "G마켓", "11번가", "도매", "현금입금", "기타"];
+const revCategories = ["11번가", "g마켓", "ns홈쇼핑", "스마트스토어", "에이블리", "오늘의집", "옥션", "카페24", "쿠팡(윙)", "토스", "도매", "기타"];
 
 function DailyRevenueSummary({ revenues, month, onUpdateRevenue }: { revenues: RevenueEntry[], month: number, onUpdateRevenue: (day: string, cat: string, amt: number) => void }) {
   const daysInMonth = new Date(2026, month, 0).getDate();
