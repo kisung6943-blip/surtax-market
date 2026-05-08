@@ -17,7 +17,7 @@ import {
   Clock,
   ArrowRight
 } from 'lucide-react';
-import { supabase } from './supabaseClient';
+
 
 // --- Types ---
 type Category = string;
@@ -65,8 +65,7 @@ export default function App() {
   const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null);
   const [data, setData] = useState<MonthlyData[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSynced, setLastSynced] = useState<Date | null>(null);
+
 
   // Form states
   const [newRevAmount, setNewRevAmount] = useState("");
@@ -109,70 +108,21 @@ export default function App() {
     }
   }, []);
 
-  // Sync to Supabase
-  const syncToSupabase = async (companyId: string, currentData: MonthlyData[]) => {
-    if (!companyId || isSyncing) return;
-    setIsSyncing(true);
-    try {
-      const { error } = await supabase
-        .from('market_data')
-        .upsert({ 
-          company_id: companyId, 
-          data: currentData,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'company_id' });
 
-      if (error) throw error;
-      setLastSynced(new Date());
-    } catch (err) {
-      console.error("Sync failed", err);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
 
-  // Pull from Supabase
-  const pullFromSupabase = async (companyId: string) => {
-    if (!companyId || isSyncing) return;
-    setIsSyncing(true);
-    try {
-      const { data: remoteData, error } = await supabase
-        .from('market_data')
-        .select('data')
-        .eq('company_id', companyId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-      
-      if (remoteData?.data) {
-        setData(remoteData.data);
-        localStorage.setItem("surtax_market_data", JSON.stringify(remoteData.data));
-      }
-    } catch (err) {
-      console.error("Pull failed", err);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  // Initial pull when company changes
-  useEffect(() => {
-    if (activeCompanyId) {
-      pullFromSupabase(activeCompanyId);
-      localStorage.setItem("surtax_market_active_id", activeCompanyId);
-    }
-  }, [activeCompanyId]);
-
-  // Save to LocalStorage and Sync when data changes
+  // Save to LocalStorage when data changes
   useEffect(() => {
     if (data.length > 0) {
       localStorage.setItem("surtax_market_data", JSON.stringify(data));
-      if (activeCompanyId) {
-        const timeout = setTimeout(() => syncToSupabase(activeCompanyId, data), 1000);
-        return () => clearTimeout(timeout);
-      }
     }
-  }, [data, activeCompanyId]);
+  }, [data]);
+
+  // Update active company in localStorage
+  useEffect(() => {
+    if (activeCompanyId) {
+      localStorage.setItem("surtax_market_active_id", activeCompanyId);
+    }
+  }, [activeCompanyId]);
 
   // Helper: Get Current Month Data
   const currentMonthData = useMemo(() => {
@@ -322,12 +272,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-3xl font-black tracking-tight">매출/매입 장부</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <div className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-amber-400 animate-pulse' : 'bg-green-400'}`}></div>
-                <p className="text-sm font-bold text-slate-500">
-                  {isSyncing ? '서버와 동기화 중...' : lastSynced ? `${lastSynced.toLocaleTimeString()} 동기화됨` : '로컬 보관 모드'}
-                </p>
-              </div>
+              <p className="text-sm font-bold text-slate-500 mt-1">로컬 보관 모드</p>
             </div>
           </div>
 
@@ -412,7 +357,37 @@ export default function App() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
+          {/* Revenue */}
+          <SectionCard title={`${selectedMonth}월 매출 상세`} total={currentMonthRevenue} color="blue" icon={<TrendingUp className="w-6 h-6 text-blue-500" />}>
+            <form onSubmit={(e) => { e.preventDefault(); handleAddRevenue(selectedMonth); }} className="space-y-4 mb-8 bg-blue-50/50 p-6 rounded-3xl border border-blue-100">
+              <div className="grid grid-cols-2 gap-4">
+                <DaySelect value={newRevDay} onChange={setNewRevDay} month={selectedMonth} />
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">스토어명</label>
+                  <input 
+                    list="revenue-options"
+                    type="text" 
+                    value={newRevCategory} 
+                    onChange={(e) => setNewRevCategory(e.target.value)} 
+                    placeholder="스토어명 입력" 
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black" 
+                  />
+                  <datalist id="revenue-options">
+                    {["스마트스토어", "쿠팡윙", "쿠팡로켓배송", "오늘의집매출", "옥션", "G마켓", "11번가", "홈페이지", "ns홈쇼핑", "에이블리", "토스쇼핑", "도매", "현금입금", "기타"].map(opt => (
+                      <option key={opt} value={opt} />
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+              <AmountInput value={newRevAmount} onChange={setNewRevAmount} focusColor="blue" />
+              <button type="submit" disabled={!newRevCategory.trim() || !newRevAmount.trim()} className="w-full py-4 bg-blue-500 text-white rounded-xl font-black hover:bg-blue-600 disabled:opacity-50 transition">매출 추가</button>
+            </form>
+            <ItemList 
+              items={currentMonthData.revenues} 
+              onRemove={(id) => handleRemoveItem(selectedMonth, id, 'revenues')} 
+              color="blue" 
+            />
+          </SectionCard>
 
           {/* Purchase */}
           <SectionCard title={`${selectedMonth}월 매입 상세`} total={currentMonthPurchase} color="orange" icon={<ShoppingBag className="w-6 h-6 text-orange-500" />}>
@@ -422,18 +397,7 @@ export default function App() {
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">매입처/품목</label>
                   <input type="text" value={newPurVendor} onChange={(e) => setNewPurVendor(e.target.value)} placeholder="도매처/물건명" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black" />
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {["도매 매입", "샘플비", "부자재비", "기타"].map(cat => (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setNewPurVendor(cat)}
-                        className={`text-[10px] font-black px-2 py-1 rounded-lg border transition-all ${newPurVendor === cat ? 'bg-orange-500 border-orange-500 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-orange-300'}`}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
+
                 </div>
               </div>
               <AmountInput value={newPurAmount} onChange={setNewPurAmount} focusColor="orange" />
