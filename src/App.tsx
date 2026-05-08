@@ -109,7 +109,6 @@ export default function App() {
   }, []);
 
 
-
   // Save to LocalStorage when data changes
   useEffect(() => {
     if (data.length > 0) {
