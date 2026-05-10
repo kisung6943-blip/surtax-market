@@ -98,10 +98,33 @@ export default function App() {
         if (error && error.code !== 'PGRST116') throw error;
 
         if (dbData && dbData.data) {
-          setData(dbData.data);
+          const rawData = dbData.data;
+          // Migration: Map old categories to new ones
+          const migrated = rawData.map((m: any) => ({
+            ...m,
+            revenues: m.revenues.map((r: any) => {
+              let cat = r.category;
+              if (cat === '오늘의집매출') cat = '오늘의집';
+              if (cat === '쿠팡윙' || cat === '쿠팡로켓배송') cat = '쿠팡(자동)';
+              return { ...r, category: cat };
+            })
+          }));
+          setData(migrated);
         } else {
           const savedData = localStorage.getItem('surtax_market_data_es');
-          if (savedData) setData(JSON.parse(savedData));
+          if (savedData) {
+            const rawData = JSON.parse(savedData);
+            const migrated = rawData.map((m: any) => ({
+              ...m,
+              revenues: m.revenues.map((r: any) => {
+                let cat = r.category;
+                if (cat === '오늘의집매출') cat = '오늘의집';
+                if (cat === '쿠팡윙' || cat === '쿠팡로켓배송') cat = '쿠팡(자동)';
+                return { ...r, category: cat };
+              })
+            }));
+            setData(migrated);
+          }
         }
       } catch (e) {
         console.error("Supabase load failed", e);
