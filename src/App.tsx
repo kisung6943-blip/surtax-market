@@ -491,45 +491,7 @@ export default function App() {
           </div>
         </header>
 
-        {/* Data Recovery Explorer - MOVED TO TOP */}
-        <div className="p-8 bg-blue-50 rounded-[2rem] border-2 border-blue-200 shadow-lg shadow-blue-500/5">
-          <h3 className="text-sm font-black text-blue-600 mb-4 flex items-center gap-2">
-            <KeyRound className="w-4 h-4" /> [긴급] 모든 저장 데이터 탐색기 (자료를 여기서 찾으세요)
-          </h3>
-          <p className="text-[10px] font-bold text-blue-400 mb-4">리스트에서 크기가 0이 아니거나 자료가 들어있을 것 같은 항목의 [데이터 불러오기] 버튼을 눌러보세요.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {Object.keys(localStorage).map(k => {
-              const val = localStorage.getItem(k) || "";
-              const size = (val.length / 1024).toFixed(1);
-              if (size === "0.0" && val.length < 5) return null; // Skip empty stuff
-              return (
-                <div key={k} className="flex items-center justify-between bg-white p-4 rounded-xl border border-blue-100 shadow-sm">
-                  <div className="flex flex-col overflow-hidden mr-4">
-                    <span className="text-xs font-black text-slate-900 truncate">{k}</span>
-                    <span className="text-[10px] text-slate-400 font-bold">크기: {size}KB</span>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      if (window.confirm(`${k}의 데이터를 불러오시겠습니까?`)) {
-                        try {
-                          const parsed = JSON.parse(val);
-                          setData(migrateData(parsed));
-                          setHasLoaded(true);
-                          alert("데이터를 성공적으로 불러왔습니다. 화면 하단의 매출/매입 내역을 확인해 주세요!");
-                        } catch(e) {
-                          alert("이 항목은 데이터 형식이 올바르지 않습니다.");
-                        }
-                      }
-                    }}
-                    className="shrink-0 px-3 py-1.5 bg-blue-600 text-white text-[10px] font-black rounded-lg hover:bg-blue-700 shadow-md active:scale-95 transition-all"
-                  >
-                    데이터 불러오기
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        </header>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           <SummaryCard icon={<TrendingUp />} color="blue" label="연간 총 매출액" value={formatCurrency(yearlyRevenue)} />
@@ -668,68 +630,6 @@ export default function App() {
           </SectionCard>
         </div>
 
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Revenue */}
-          <SectionCard title={`${selectedMonth}월 매출 상세`} total={currentMonthRevenue} color="blue" icon={<Calendar className="w-6 h-6 text-blue-400" />}>
-            <form onSubmit={(e) => { e.preventDefault(); handleAddRevenue(selectedMonth); }} className="space-y-4 mb-8 bg-blue-50/50 p-6 rounded-3xl border border-blue-100">
-              <div className="grid grid-cols-2 gap-4">
-                <DaySelect value={newRevDay} onChange={setNewRevDay} month={selectedMonth} />
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">스토어명</label>
-                  <select value={newRevCategory} onChange={(e) => setNewRevCategory(e.target.value as RevenueCategory)} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black">
-                    <option value="11번가">11번가</option>
-                    <option value="g마켓">g마켓</option>
-                    <option value="ns홈쇼핑">ns홈쇼핑</option>
-                    <option value="스마트스토어">스마트스토어</option>
-                    <option value="에이블리">에이블리</option>
-                    <option value="오늘의집">오늘의집</option>
-                    <option value="옥션">옥션</option>
-                    <option value="카페24">카페24</option>
-                    <option value="쿠팡(윙)">쿠팡(윙)</option>
-                    <option value="토스">토스</option>
-                    <option value="도매">도매</option>
-                    <option value="기타">기타</option>
-                  </select>
-                </div>
-              </div>
-              <AmountInput value={newRevAmount} onChange={setNewRevAmount} focusColor="blue" />
-              <button type="submit" disabled={!newRevAmount.trim()} className="w-full py-4 bg-blue-600 text-white rounded-xl font-black hover:bg-blue-700 disabled:opacity-50 transition">매출 추가</button>
-            </form>
-            <ItemList items={currentMonthData.revenues} onRemove={(id) => handleRemoveItem(selectedMonth, id, 'revenues')} color="blue" />
-          </SectionCard>
-
-          {/* Purchase */}
-          <SectionCard title={`${selectedMonth}월 매입 상세`} total={currentMonthPurchase} color="orange" icon={<ShoppingBag className="w-6 h-6 text-orange-500" />}>
-            <form onSubmit={(e) => { e.preventDefault(); handleAddPurchase(selectedMonth); }} className="space-y-4 mb-8 bg-orange-50/50 p-6 rounded-3xl border border-orange-100">
-              <div className="grid grid-cols-2 gap-4">
-                <DaySelect value={newPurDay} onChange={setNewPurDay} month={selectedMonth} />
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">매입처/품목</label>
-                  <input type="text" value={newPurVendor} onChange={(e) => setNewPurVendor(e.target.value)} placeholder="도매처/물건명" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black" />
-                </div>
-              </div>
-              <AmountInput value={newPurAmount} onChange={setNewPurAmount} focusColor="orange" />
-              <button type="submit" disabled={!newPurVendor.trim() || !newPurAmount.trim()} className="w-full py-4 bg-orange-500 text-white rounded-xl font-black hover:bg-orange-600 disabled:opacity-50 transition">매입 추가</button>
-            </form>
-            <ItemList items={currentMonthData.purchases.filter(p => !p.isAutoAd)} onRemove={(id) => handleRemoveItem(selectedMonth, id, 'purchases')} color="orange" />
-          </SectionCard>
-
-          {/* Expenditure */}
-          <SectionCard title={`${selectedMonth}월 지출 상세`} total={currentMonthExpenditure} color="red" icon={<TrendingDown className="w-6 h-6 text-red-500" />}>
-            <form onSubmit={(e) => { e.preventDefault(); handleAddExpenditure(selectedMonth); }} className="space-y-4 mb-8 bg-red-50/50 p-6 rounded-3xl border border-red-100">
-              <div className="grid grid-cols-2 gap-4">
-                <DaySelect value={newExpDay} onChange={setNewExpDay} month={selectedMonth} />
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">지출항목</label>
-                  <input type="text" value={newExpVendor} onChange={(e) => setNewExpVendor(e.target.value)} placeholder="항목 직접 입력" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black" />
-                </div>
-              </div>
-              <AmountInput value={newExpAmount} onChange={setNewExpAmount} focusColor="red" />
-              <button type="submit" disabled={!newExpVendor.trim() || !newExpAmount.trim()} className="w-full py-4 bg-red-500 text-white rounded-xl font-black hover:bg-red-600 disabled:opacity-50 transition">지출 추가</button>
-            </form>
-            <ItemList items={currentMonthData.expenditures} onRemove={(id) => handleRemoveItem(selectedMonth, id, 'expenditures')} color="red" />
-          </SectionCard>
         </div>
       </div>
     </div>
