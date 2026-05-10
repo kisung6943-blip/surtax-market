@@ -242,6 +242,42 @@ export default function App() {
     }
   };
 
+  const findMissingData = () => {
+    const keys = Object.keys(localStorage);
+    const dataKeys = keys.filter(k => k.startsWith('surtax_market_data_'));
+    const legacyKey = 'surtax_market_data';
+    
+    let found: Company[] = [];
+    const legacyData = localStorage.getItem(legacyKey);
+    if (legacyData && legacyData !== "[]") {
+      found.push({ id: 'legacy', name: '이전 통합 데이터' });
+    }
+    
+    dataKeys.forEach(k => {
+      const id = k.replace('surtax_market_data_', '');
+      if (!companies.find(c => c.id === id)) {
+        found.push({ id, name: `복구된 업체 (${id.substring(0, 6)})` });
+      }
+    });
+    
+    if (found.length > 0) {
+      if (window.confirm(`${found.length}개의 기존 데이터를 찾았습니다. 업체 리스트에 추가하여 확인하시겠습니까?`)) {
+        setCompanies(prev => {
+          const newCompanies = [...prev];
+          found.forEach(f => {
+            if (!newCompanies.find(c => c.id === f.id)) {
+              newCompanies.push(f);
+            }
+          });
+          return newCompanies;
+        });
+        alert("업체 리스트에 추가되었습니다. 상단 선택 메뉴에서 복구된 업체를 선택해 보세요.");
+      }
+    } else {
+      alert("추가로 발견된 데이터가 없습니다. 이미 리스트에 있거나 데이터가 비어있을 수 있습니다.");
+    }
+  };
+
   const handleSetPassword = () => {
     if (inputPassword.length < 4) {
       alert("비밀번호는 최소 4자리 이상이어야 합니다.");
@@ -492,7 +528,10 @@ export default function App() {
               </div>
             </div>
           </div>
-          <button onClick={handleReset} className="px-4 py-2 text-xs font-black text-red-500 hover:bg-red-50 rounded-lg border border-red-100 transition-colors flex items-center gap-2"><Trash2 className="w-3 h-3" /> 데이터 초기화</button>
+          <div className="flex gap-2">
+            <button onClick={findMissingData} className="px-4 py-2 text-xs font-black text-blue-500 hover:bg-blue-50 rounded-lg border border-blue-100 transition-colors flex items-center gap-2">누락된 데이터 찾기</button>
+            <button onClick={handleReset} className="px-4 py-2 text-xs font-black text-red-500 hover:bg-red-50 rounded-lg border border-red-100 transition-colors flex items-center gap-2"><Trash2 className="w-3 h-3" /> 데이터 초기화</button>
+          </div>
         </header>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
