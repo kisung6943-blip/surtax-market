@@ -1,30 +1,35 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { DollarSign, TrendingDown, TrendingUp, Plus, Trash2, Calendar, Percent, ChevronRight, Lock, KeyRound, Unlock, ShoppingBag } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  TrendingUp, TrendingDown, ShoppingBag, DollarSign, Calendar, 
+  Plus, Trash2, KeyRound, Unlock, Percent, BarChart as BarChartIcon,
+  Search, ChevronRight, AlertCircle, Save, Database, History,
+  FileText, Download, CheckCircle2, XCircle
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
+} from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from './lib/supabase';
 
-const AD_VENDORS = ["네이버광고비", "쿠팡로켓광고", "쿠팡윙광고", "오늘의집 광고비"];
-const adCategories = ["네이버광고비", "쿠팡로켓광고", "쿠팡윙광고", "오늘의집 광고비"];
-const revCategories = ["11번가", "g마켓", "ns홈쇼핑", "스마트스토어", "에이블리", "오늘의집", "옥션", "카페24", "쿠팡(윙)", "토스", "도매", "기타"];
-
-type RevenueCategory = string;
-
-type RevenueEntry = {
-  id: string;
-  category: RevenueCategory;
-  amount: number;
-  date: string;
-  vendor: string;
-};
+// Types
+type RevenueCategory = '11번가' | 'g마켓' | 'ns홈쇼핑' | '스마트스토어' | '에이블리' | '오늘의집' | '옥션' | '카페24' | '쿠팡(윙)' | '토스' | '도매' | '기타';
+const revCategories: RevenueCategory[] = ['11번가', 'g마켓', 'ns홈쇼핑', '스마트스토어', '에이블리', '오늘의집', '옥션', '카페24', '쿠팡(윙)', '토스', '도매', '기타'];
 
 type Entry = {
   id: string;
+  date: string;
   vendor: string;
   amount: number;
-  date: string;
   isAutoAd?: boolean;
+};
+
+type RevenueEntry = {
+  id: string;
+  date: string;
+  category: RevenueCategory;
+  amount: number;
+  vendor?: string;
 };
 
 type MonthData = {
@@ -34,10 +39,7 @@ type MonthData = {
   expenditures: Entry[];
 };
 
-type Company = {
-  id: string;
-  name: string;
-};
+type SyncStatus = 'idle' | 'syncing' | 'done' | 'error';
 
 const getInitialData = (): MonthData[] => {
   const initialData: MonthData[] = Array.from({ length: 12 }, (_, i) => ({
@@ -47,33 +49,31 @@ const getInitialData = (): MonthData[] => {
     expenditures: [],
   }));
 
-  // Emergency Manual Reconstruction from Screenshots
-  // April (Month 4)
+  // Emergency Manual Reconstruction from Screenshots (v3.0)
   const april = initialData[3];
   april.revenues = [
-    { id: 'rec_r1', date: '2026-04-30', category: '11번가', amount: 538940, vendor: '' },
-    { id: 'rec_r2', date: '2026-04-30', category: 'g마켓', amount: 1341406, vendor: '' },
-    { id: 'rec_r3', date: '2026-04-30', category: 'ns홈쇼핑', amount: 50400, vendor: '' },
-    { id: 'rec_r4', date: '2026-04-30', category: '스마트스토어', amount: 40509780, vendor: '' },
-    { id: 'rec_r5', date: '2026-04-30', category: '에이블리', amount: 68000, vendor: '' },
-    { id: 'rec_r6', date: '2026-04-30', category: '오늘의집', amount: 11399450, vendor: '' },
-    { id: 'rec_r7', date: '2026-04-30', category: '옥션', amount: 345634, vendor: '' },
-    { id: 'rec_r8', date: '2026-04-30', category: '카페24', amount: 1516720, vendor: '' },
-    { id: 'rec_r9', date: '2026-04-30', category: '쿠팡(윙)', amount: 40581620, vendor: '' },
-    { id: 'rec_r10', date: '2026-04-30', category: '토스', amount: 133000, vendor: '' },
-    { id: 'rec_r11', date: '2026-04-30', category: '도매', amount: 4830400, vendor: '' },
+    { id: 'rec_r1', date: '30', category: '11번가', amount: 538940, vendor: '' },
+    { id: 'rec_r2', date: '30', category: 'g마켓', amount: 1341406, vendor: '' },
+    { id: 'rec_r3', date: '30', category: 'ns홈쇼핑', amount: 50400, vendor: '' },
+    { id: 'rec_r4', date: '30', category: '스마트스토어', amount: 40509780, vendor: '' },
+    { id: 'rec_r5', date: '30', category: '에이블리', amount: 68000, vendor: '' },
+    { id: 'rec_r6', date: '30', category: '오늘의집', amount: 11399450, vendor: '' },
+    { id: 'rec_r7', date: '30', category: '옥션', amount: 345634, vendor: '' },
+    { id: 'rec_r8', date: '30', category: '카페24', amount: 1516720, vendor: '' },
+    { id: 'rec_r9', date: '30', category: '쿠팡(윙)', amount: 40581620, vendor: '' },
+    { id: 'rec_r10', date: '30', category: '토스', amount: 133000, vendor: '' },
+    { id: 'rec_r11', date: '30', category: '도매', amount: 4830400, vendor: '' },
   ];
   april.purchases = [
-    { id: 'rec_p1', date: '2026-04-30', vendor: '4월 매입 총계 (복구됨)', amount: 133607804, isAutoAd: false }
+    { id: 'rec_p1', date: '30', vendor: '4월 매입 총계 (복구됨)', amount: 133607804, isAutoAd: false }
   ];
   april.expenditures = [
-    { id: 'rec_e1', date: '2026-04-30', vendor: '4월 지출 총계 (복구됨)', amount: 18701479 }
+    { id: 'rec_e1', date: '30', vendor: '4월 지출 총계 (복구됨)', amount: 18701479 }
   ];
 
-  // May (Month 5)
   const may = initialData[4];
   may.revenues = [
-    { id: 'rec_r12', date: '2026-05-10', category: '기타', amount: 23301862, vendor: '' }
+    { id: 'rec_r12', date: '10', category: '기타', amount: 23301862, vendor: '' }
   ];
 
   return initialData;
@@ -82,371 +82,189 @@ const getInitialData = (): MonthData[] => {
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [inputPassword, setInputPassword] = useState("");
-  const [savedPassword, setSavedPassword] = useState<string | null>(null);
   const [isSettingPassword, setIsSettingPassword] = useState(false);
-
+  
   const [data, setData] = useState<MonthData[]>(getInitialData());
-  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
-  const activeCompanyId = "es";
-
-  // Initial Authentication Check
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("surtax_market_password");
-      if (saved) {
-        setSavedPassword(saved);
-        setIsSettingPassword(false);
-      } else {
-        setIsSettingPassword(true);
-      }
-    } catch (e) {
-      console.error("Auth check failed", e);
-      setIsSettingPassword(true);
-    }
-  }, []);
-
-  // Form states
-  const [newRevAmount, setNewRevAmount] = useState("");
-  const [newRevCategory, setNewRevCategory] = useState<RevenueCategory>("11번가");
-  const [newRevDay, setNewRevDay] = useState(new Date().getDate().toString().padStart(2, '0'));
-
-  const [newPurVendor, setNewPurVendor] = useState("");
-  const [newPurAmount, setNewPurAmount] = useState("");
-  const [newPurDay, setNewPurDay] = useState(new Date().getDate().toString().padStart(2, '0'));
-
-  const [newExpVendor, setNewExpVendor] = useState("");
-  const [newExpAmount, setNewExpAmount] = useState("");
-  const [newExpDay, setNewExpDay] = useState(new Date().getDate().toString().padStart(2, '0'));
-
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'done' | 'error'>('idle');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const [hasLoaded, setHasLoaded] = useState(false);
 
-  // Helper: migrate old data format
-  const migrateData = (parsed: any[]) => parsed.map((m: any) => {
-    const purchases = Array.isArray(m.purchases) ? m.purchases : (Array.isArray(m.expenses) ? m.expenses : []);
-    
-    // One-time migration for ad entries to set isAutoAd flag
-    const fixedPurchases = purchases.map((p: any) => {
-      if (AD_VENDORS.includes(p.vendor) && p.isAutoAd === undefined) {
-        return { ...p, isAutoAd: true };
-      }
-      return p;
-    });
+  // Form states
+  const [newRevDay, setNewRevDay] = useState(new Date().getDate().toString().padStart(2, '0'));
+  const [newRevCategory, setNewRevCategory] = useState<RevenueCategory>('11번가');
+  const [newRevAmount, setNewRevAmount] = useState("");
 
-    return {
-      ...m,
-      revenues: m.revenues || [],
-      purchases: fixedPurchases,
-      expenditures: m.expenditures || [],
-      expenses: undefined 
-    };
-  });
+  const [newPurDay, setNewPurDay] = useState(new Date().getDate().toString().padStart(2, '0'));
+  const [newPurVendor, setNewPurVendor] = useState("");
+  const [newPurAmount, setNewPurAmount] = useState("");
 
-  // Helper: Save to Supabase
-  const saveToSupabase = async (key: string, value: any) => {
-    try {
-      await supabase.from('surtax_data').upsert({ id: key, data: value }, { onConflict: 'id' });
-    } catch (e) {
-      console.error('Supabase save failed', e);
-    }
-  };
+  const [newExpDay, setNewExpDay] = useState(new Date().getDate().toString().padStart(2, '0'));
+  const [newExpVendor, setNewExpVendor] = useState("");
+  const [newExpAmount, setNewExpAmount] = useState("");
 
-  // Helper: Load from Supabase
-  const loadFromSupabase = async (key: string) => {
-    try {
-      const { data: row, error } = await supabase.from('surtax_data').select('data').eq('id', key).single();
-      if (error || !row) return null;
-      return row.data;
-    } catch (e) {
-      console.error('Supabase load failed', e);
-      return null;
-    }
-  };
-
-  // Simplified Initial Load (Cloud Recovery First)
+  // Persistent storage (SAVE DISABLED FOR SAFETY)
   useEffect(() => {
-    const scavengeAndLoad = async () => {
-      setSyncStatus('syncing');
-      
-      // 1. Try Specific Known Cloud IDs from Screenshot
-      const targetIds = ['company_1778021612050', 'es', 'surtax_market_data'];
-      for (const id of targetIds) {
-        const key = id.startsWith('surtax_') ? id : `surtax_market_data_${id}`;
-        try {
-          const cloudData = await loadFromSupabase(key);
-          if (cloudData && Array.isArray(cloudData) && cloudData.some((m:any) => (m.revenues && m.revenues.length > 0) || (m.purchases && m.purchases.length > 0))) {
-            console.log("Recovered from Cloud ID:", key);
-            setData(migrateData(cloudData));
-            setHasLoaded(true);
-            setSyncStatus('done');
-            return;
-          }
-        } catch (e) {}
+    const loadData = async () => {
+      const savedPass = localStorage.getItem('surtax_market_password');
+      if (!savedPass) {
+        setIsSettingPassword(true);
+      } else {
+        setIsAuthenticated(false);
       }
 
-      // 2. Fallback: Look for any surtax data key in localStorage and pick the largest one
-      const keys = Object.keys(localStorage).filter(k => k.startsWith('surtax_market_data'));
-      let bestKey = '';
-      let maxLen = -1;
-
-      keys.forEach(k => {
-        const val = localStorage.getItem(k);
-        if (val) {
-          try {
-            const parsed = JSON.parse(val);
-            if (Array.isArray(parsed)) {
-              if (val.length > maxLen) {
-                maxLen = val.length;
-                bestKey = k;
-              }
-            }
-          } catch(e) {}
-        }
-      });
-
-      if (bestKey) {
-        console.log("Checking best found local key:", bestKey);
-        const val = localStorage.getItem(bestKey);
-        if (val) {
-          const parsed = JSON.parse(val);
-          // Only overwrite if this local data is NOT empty
-          if (parsed.some((m:any) => (m.revenues && m.revenues.length > 0) || (m.purchases && m.purchases.length > 0))) {
-            setData(migrateData(parsed));
-          } else {
-            console.log("Local data was empty, keeping recovery data.");
-          }
+      // Priority check for data
+      const localData = localStorage.getItem('surtax_market_data_company_1778021612050');
+      if (localData) {
+        const parsed = JSON.parse(localData);
+        // Only use if NOT empty
+        if (parsed.some((m:any) => m.revenues.length > 0 || m.purchases.length > 0)) {
+          setData(parsed);
         }
       }
-      
       setHasLoaded(true);
-      setSyncStatus('done');
     };
-    
-    scavengeAndLoad();
+    loadData();
   }, []);
 
-
-  // !!! SAFETY: SAVE IS DISABLED DURING RECOVERY !!!
-  useEffect(() => {
-    if (hasLoaded && data.some(m => m.revenues.length > 0)) {
-      // localStorage.setItem('surtax_market_data_es', JSON.stringify(data));
-      console.log("Save is currently disabled for safety. Data is in memory.");
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const savedPass = localStorage.getItem('surtax_market_password');
+    if (inputPassword === savedPass) {
+      setIsAuthenticated(true);
+    } else {
+      alert("비밀번호가 틀렸습니다.");
     }
-  }, [data, hasLoaded]);
-
-  const handleReset = () => {
-    if (window.confirm("현재 업체의 모든 데이터를 초기화하시겠습니까?")) {
-      setData(getInitialData());
-      localStorage.removeItem(`surtax_market_data_${activeCompanyId}`);
-    }
-  };
-
-  const findMissingData = () => {
-    alert("현재 비상 복구 로직이 작동 중입니다. 새로고침 후에도 데이터가 없다면 저장소 자체가 비어있는 상태일 수 있습니다.");
   };
 
   const handleSetPassword = () => {
     if (inputPassword.length < 4) {
-      alert("비밀번호는 최소 4자리 이상이어야 합니다.");
+      alert("비밀번호는 4자리 이상이어야 합니다.");
       return;
     }
-    localStorage.setItem("surtax_market_password", inputPassword);
-    setSavedPassword(inputPassword);
+    localStorage.setItem('surtax_market_password', inputPassword);
     setIsSettingPassword(false);
     setIsAuthenticated(true);
-    setInputPassword("");
-  };
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (inputPassword === savedPassword) {
-      setIsAuthenticated(true);
-      setInputPassword("");
-    } else {
-      alert("비밀번호가 일치하지 않습니다.");
-      setInputPassword("");
-    }
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    setInputPassword("");
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("ko-KR", {
-      style: "currency",
-      currency: "KRW",
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  // Handlers
+  // Actions
   const handleAddRevenue = (month: number) => {
-    if (!newRevAmount.trim()) return;
-    const amount = parseInt(newRevAmount.replace(/[^0-9]/g, ""), 10) || 0;
+    const amount = parseInt(newRevAmount.replace(/,/g, ''));
+    if (isNaN(amount)) return;
 
-    setData(prev => prev.map(d => {
-      if (d.month === month) {
-        return {
-          ...d,
-          revenues: [...(d.revenues || []), { 
-            id: Date.now().toString() + Math.random().toString(), 
-            vendor: "", 
-            amount, 
-            category: newRevCategory,
-            date: newRevDay.padStart(2, '0')
-          }].sort((a, b) => a.date.localeCompare(b.date))
-        };
-      }
-      return d;
-    }));
+    const newItem: RevenueEntry = {
+      id: `rev_${Date.now()}`,
+      date: newRevDay,
+      category: newRevCategory,
+      amount,
+      vendor: ''
+    };
+
+    setData(prev => prev.map(m => m.month === month ? { ...m, revenues: [...m.revenues, newItem] } : m));
     setNewRevAmount("");
   };
 
   const handleAddPurchase = (month: number) => {
-    if (!newPurVendor.trim() || !newPurAmount.trim()) return;
-    const amount = parseInt(newPurAmount.replace(/[^0-9]/g, ""), 10) || 0;
+    const amount = parseInt(newPurAmount.replace(/,/g, ''));
+    if (isNaN(amount) || !newPurVendor.trim()) return;
 
-    setData(prev => prev.map(d => {
-      if (d.month === month) {
-        return {
-          ...d,
-          purchases: [...(d.purchases || []), { 
-            id: Date.now().toString() + Math.random().toString(), 
-            vendor: newPurVendor.trim(), 
-            amount, 
-            date: newPurDay.padStart(2, '0')
-          }].sort((a, b) => a.date.localeCompare(b.date))
-        };
-      }
-      return d;
-    }));
+    const newItem: Entry = {
+      id: `pur_${Date.now()}`,
+      date: newPurDay,
+      vendor: newPurVendor,
+      amount
+    };
+
+    setData(prev => prev.map(m => m.month === month ? { ...m, purchases: [...m.purchases, newItem] } : m));
     setNewPurVendor("");
     setNewPurAmount("");
   };
 
   const handleAddExpenditure = (month: number) => {
-    if (!newExpVendor.trim() || !newExpAmount.trim()) return;
-    const amount = parseInt(newExpAmount.replace(/[^0-9]/g, ""), 10) || 0;
+    const amount = parseInt(newExpAmount.replace(/,/g, ''));
+    if (isNaN(amount) || !newExpVendor.trim()) return;
 
-    setData(prev => prev.map(d => {
-      if (d.month === month) {
-        return {
-          ...d,
-          expenditures: [...(d.expenditures || []), { 
-            id: Date.now().toString() + Math.random().toString(), 
-            vendor: newExpVendor.trim(), 
-            amount, 
-            date: newExpDay.padStart(2, '0')
-          }].sort((a, b) => a.date.localeCompare(b.date))
-        };
-      }
-      return d;
-    }));
+    const newItem: Entry = {
+      id: `exp_${Date.now()}`,
+      date: newExpDay,
+      vendor: newExpVendor,
+      amount
+    };
+
+    setData(prev => prev.map(m => m.month === month ? { ...m, expenditures: [...m.expenditures, newItem] } : m));
     setNewExpVendor("");
     setNewExpAmount("");
   };
 
-  const handleRemoveItem = (month: number, id: string, type: 'revenues' | 'purchases' | 'expenditures') => {
-    setData(prev => prev.map(d => {
-      if (d.month === month) {
-        return {
-          ...d,
-          [type]: (d[type] as any[]).filter(item => item.id !== id)
-        };
-      }
-      return d;
-    }));
-  };
-  const handleUpdateAd = (month: number, day: string, category: string, amount: number) => {
-    setData(prev => prev.map(d => {
-      if (d.month === month) {
-        const otherPurchases = (d.purchases || []).filter(p => !(p.date === day && p.vendor === category));
-        if (amount > 0) {
-          return {
-            ...d,
-            purchases: [...otherPurchases, { 
-              id: Date.now().toString() + Math.random().toString(), 
-              vendor: category, 
-              amount, 
-              date: day,
-              isAutoAd: true
-            }].sort((a, b) => a.date.localeCompare(b.date) || a.vendor.localeCompare(b.vendor))
-          };
-        } else {
-          return { ...d, purchases: otherPurchases };
-        }
-      }
-      return d;
+  const handleUpdateAd = (month: number, day: string, cat: string, amt: number) => {
+    setData(prev => prev.map(m => {
+      if (m.month !== month) return m;
+      const otherPurchases = m.purchases.filter(p => !(p.date === day && p.vendor === cat && p.isAutoAd));
+      if (amt === 0) return { ...m, purchases: otherPurchases };
+      const newAd: Entry = { id: `ad_${day}_${cat}`, date: day, vendor: cat, amount: amt, isAutoAd: true };
+      return { ...m, purchases: [...otherPurchases, newAd] };
     }));
   };
 
-  const handleUpdateRevenue = (month: number, day: string, category: string, amount: number) => {
-    setData(prev => prev.map(d => {
-      if (d.month === month) {
-        const otherRevenues = (d.revenues || []).filter(r => !(r.date === day && r.category === category));
-        if (amount > 0) {
-          return {
-            ...d,
-            revenues: [...otherRevenues, { 
-              id: Date.now().toString() + Math.random().toString(), 
-              category: category as RevenueCategory,
-              vendor: "", 
-              amount, 
-              date: day 
-            }].sort((a, b) => a.date.localeCompare(b.date) || a.category.localeCompare(b.category))
-          };
-        } else {
-          return { ...d, revenues: otherRevenues };
-        }
-      }
-      return d;
+  const handleUpdateRevenue = (month: number, day: string, cat: RevenueCategory, amt: number) => {
+    setData(prev => prev.map(m => {
+      if (m.month !== month) return m;
+      const otherRevs = m.revenues.filter(r => !(r.date === day && r.category === cat));
+      if (amt === 0) return { ...m, revenues: otherRevs };
+      const newRev: RevenueEntry = { id: `rev_${day}_${cat}`, date: day, category: cat, amount: amt, vendor: '' };
+      return { ...m, revenues: [...otherRevs, newRev] };
     }));
+  };
+
+  const handleRemoveItem = (month: number, id: string, type: 'revenues' | 'purchases' | 'expenditures') => {
+    setData(prev => prev.map(m => m.month === month ? { ...m, [type]: m[type].filter((item: any) => item.id !== id) } : m));
+  };
+
+  const handleReset = () => {
+    if (window.confirm("정말로 모든 데이터를 초기화하시겠습니까? (복구된 데이터도 사라집니다)")) {
+      setData(getInitialData());
+    }
   };
 
   // Calculations
-  const calculateTotal = (items: any[]) => items?.reduce((sum, r) => sum + r.amount, 0) || 0;
-  const calculateTotalExcludingAds = (items: any[]) => items?.filter(item => !item.isAutoAd).reduce((sum, r) => sum + r.amount, 0) || 0;
-  const calculateOnlyAds = (items: any[]) => items?.filter(item => item.isAutoAd).reduce((sum, r) => sum + r.amount, 0) || 0;
+  const currentMonthData = data.find(m => m.month === selectedMonth) || getInitialData()[0];
+  const currentMonthRevenue = currentMonthData.revenues.reduce((sum, r) => sum + r.amount, 0);
+  const currentMonthPurchase = currentMonthData.purchases.reduce((sum, p) => sum + p.amount, 0);
+  const currentMonthExpenditure = currentMonthData.expenditures.reduce((sum, e) => sum + e.amount, 0);
+  const currentMonthProfit = currentMonthRevenue - currentMonthPurchase - currentMonthExpenditure;
 
-  const yearlyRevenue = useMemo(() => data.reduce((sum, m) => sum + calculateTotal(m.revenues), 0), [data]);
-  const yearlyPurchase = useMemo(() => data.reduce((sum, m) => sum + calculateTotalExcludingAds(m.purchases), 0), [data]);
-  const yearlyAdExpense = useMemo(() => data.reduce((sum, m) => sum + calculateOnlyAds(m.purchases), 0), [data]);
-  const yearlyExpenditure = useMemo(() => data.reduce((sum, m) => sum + calculateTotal(m.expenditures), 0), [data]);
-  const yearlyNetProfit = yearlyRevenue - (yearlyPurchase + yearlyExpenditure);
+  const yearlyRevenue = data.reduce((sum, m) => sum + m.revenues.reduce((s, r) => s + r.amount, 0), 0);
+  const yearlyPurchase = data.reduce((sum, m) => sum + m.purchases.reduce((s, p) => s + p.amount, 0), 0);
+  const yearlyExpenditure = data.reduce((sum, m) => sum + m.expenditures.reduce((s, e) => s + e.amount, 0), 0);
+  const yearlyNetProfit = yearlyRevenue - yearlyPurchase - yearlyExpenditure;
   const yearlyPurchaseRatio = yearlyRevenue > 0 ? ((yearlyPurchase / yearlyRevenue) * 100).toFixed(1) : "0.0";
 
-  const chartData = useMemo(() => data.map(m => {
-    const revenue = calculateTotal(m.revenues);
-    const purchase = calculateTotalExcludingAds(m.purchases);
-    const expenditure = calculateTotal(m.expenditures);
-    return {
-      month: m.month,
-      revenue,
-      purchase,
-      expenditure,
-      profit: revenue - (purchase + expenditure)
-    };
-  }), [data]);
+  const chartData = data.map(m => ({
+    month: m.month,
+    revenue: m.revenues.reduce((s, r) => s + r.amount, 0),
+    purchase: m.purchases.reduce((s, p) => s + p.amount, 0),
+    expenditure: m.expenditures.reduce((s, e) => s + e.amount, 0),
+    profit: m.revenues.reduce((s, r) => s + r.amount, 0) - m.purchases.reduce((s, p) => s + p.amount, 0) - m.expenditures.reduce((s, e) => s + e.amount, 0)
+  }));
 
-  const currentMonthData = data.find(d => d.month === selectedMonth)!;
-  const currentMonthRevenue = calculateTotal(currentMonthData.revenues);
-  const currentMonthPurchase = calculateTotalExcludingAds(currentMonthData.purchases);
-  const currentMonthExpenditure = calculateTotal(currentMonthData.expenditures);
-  const currentMonthProfit = currentMonthRevenue - (currentMonthPurchase + currentMonthExpenditure);
+  const formatCurrency = (amt: number) => new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW', maximumFractionDigits: 0 }).format(amt);
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
-          <Card className="border-none shadow-2xl shadow-blue-500/10 rounded-[2.5rem] overflow-hidden bg-slate-900 text-white">
-            <CardContent className="p-10 text-center">
-              <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl shadow-blue-600/30">
-                {isSettingPassword ? <Lock className="w-10 h-10 text-white" /> : <KeyRound className="w-10 h-10 text-white" />}
+          <Card className="border-none bg-slate-800/50 backdrop-blur-xl shadow-2xl rounded-[2.5rem] overflow-hidden">
+            <CardContent className="p-12 text-center">
+              <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-lg shadow-blue-600/30">
+                <KeyRound className="w-10 h-10 text-white" />
               </div>
-              <h2 className="text-3xl font-black mb-3 tracking-tight">{isSettingPassword ? "보안 비밀번호 설정" : "보호된 장부"}</h2>
-              <p className="text-slate-600 text-sm mb-10 font-medium leading-relaxed whitespace-pre-line">
-                {isSettingPassword ? "장부 데이터를 안전하게 보호하기 위해\n새로운 비밀번호를 설정해 주세요." : "이 앱은 비밀번호로 보호되어 있습니다.\n접근하려면 비밀번호를 입력하세요."}
+              <h2 className="text-3xl font-black text-white mb-2">{isSettingPassword ? "비밀번호 설정" : "보안 잠금"}</h2>
+              <p className="text-slate-400 font-bold mb-10 text-sm">
+                {isSettingPassword ? "장부 보호를 위한 비밀번호를 설정하세요." : "금액 보호를 위해 비밀번호가 필요합니다."}
               </p>
               <form onSubmit={isSettingPassword ? (e) => { e.preventDefault(); handleSetPassword(); } : handleLogin} className="space-y-4">
                 <input type="password" value={inputPassword} onChange={(e) => setInputPassword(e.target.value)} placeholder="비밀번호 입력" autoFocus className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-center text-2xl font-black tracking-[0.5em] placeholder:tracking-normal placeholder:text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none text-white" />
@@ -462,35 +280,23 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
       <div className="max-w-7xl mx-auto space-y-8">
+        {/* HEADER */}
         <header className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-4">
-              <h1 className="text-3xl font-black tracking-tight text-slate-900 whitespace-nowrap">마켓 통합 회계 장부</h1>
+              <h1 className="text-3xl font-black tracking-tight text-slate-900 whitespace-nowrap">마켓 통합 회계 장부 <span className="text-blue-500 text-sm ml-2">v3.0 (복구됨)</span></h1>
               <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-2xl px-4 py-2 shadow-sm">
                 <span className="text-lg font-black text-blue-600">(ES)</span>
               </div>
               <button onClick={handleLogout} className="p-2 text-slate-300 hover:text-blue-500 transition-colors"><Unlock className="w-5 h-5" /></button>
-              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black ${
-                syncStatus === 'syncing' ? 'bg-yellow-50 text-yellow-600 border border-yellow-200' :
-                syncStatus === 'done' ? 'bg-green-50 text-green-600 border border-green-200' :
-                syncStatus === 'error' ? 'bg-red-50 text-red-600 border border-red-200' :
-                'bg-slate-50 text-slate-400 border border-slate-200'
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${
-                  syncStatus === 'syncing' ? 'bg-yellow-500 animate-pulse' :
-                  syncStatus === 'done' ? 'bg-green-500' :
-                  syncStatus === 'error' ? 'bg-red-500' : 'bg-slate-400'
-                }`} />
-                {syncStatus === 'syncing' ? '동기화 중...' : syncStatus === 'done' ? '클라우드 동기화 완료' : syncStatus === 'error' ? '동기화 실패' : '대기 중'}
-              </div>
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={findMissingData} className="px-4 py-2 text-xs font-black text-blue-500 hover:bg-blue-50 rounded-lg border border-blue-100 transition-colors flex items-center gap-2">누락된 데이터 찾기</button>
-            <button onClick={handleReset} className="px-4 py-2 text-xs font-black text-red-500 hover:bg-red-50 rounded-lg border border-red-100 transition-colors flex items-center gap-2"><Trash2 className="w-3 h-3" /> 데이터 초기화</button>
+            <button onClick={handleReset} className="px-4 py-2 text-xs font-black text-red-500 hover:bg-red-50 rounded-lg border border-red-100 transition-colors flex items-center gap-2"><Trash2 className="w-3 h-3" /> 전체 초기화</button>
           </div>
         </header>
 
+        {/* YEARLY SUMMARY */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           <SummaryCard icon={<TrendingUp />} color="blue" label="연간 총 매출액" value={formatCurrency(yearlyRevenue)} />
           <SummaryCard icon={<ShoppingBag />} color="orange" label="연간 총 매입액" value={formatCurrency(yearlyPurchase)} subtext={`매출대비 ${yearlyPurchaseRatio}%`} />
@@ -499,13 +305,12 @@ export default function App() {
           <SummaryCard icon={<Percent />} color="purple" label="연간 매입 비율" value={`${yearlyPurchaseRatio}%`} subtext="지출 제외" />
         </div>
 
+        {/* CHART */}
         <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem] overflow-hidden">
           <CardHeader className="bg-white border-b border-slate-50 pb-6 pt-8">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-lg font-black flex items-center gap-2">
-                <BarChart className="w-5 h-5 text-blue-500" /> 월별 회계 추이 (매출/매입/지출/순익)
-              </CardTitle>
-            </div>
+            <CardTitle className="text-lg font-black flex items-center gap-2">
+              <BarChartIcon className="w-5 h-5 text-blue-500" /> 월별 회계 추이 (매출/매입/지출/순익)
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
             <div className="h-[300px] w-full">
@@ -526,7 +331,8 @@ export default function App() {
           </CardContent>
         </Card>
 
-        <div className="space-y-4">
+        {/* MONTH SELECTOR & MONTH SUMMARY */}
+        <div className="space-y-6">
           <div className="flex overflow-x-auto pb-4 gap-2 snap-x no-scrollbar">
             {data.map(m => (
               <button key={m.month} onClick={() => setSelectedMonth(m.month)} className={`px-6 py-3 rounded-2xl whitespace-nowrap text-sm font-black transition snap-start border-2 ${selectedMonth === m.month ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/20' : 'bg-white text-slate-700 hover:bg-slate-100 border-white shadow-sm'}`}>{m.month}월</button>
@@ -553,50 +359,30 @@ export default function App() {
           </div>
         </div>
 
-        <DailyRevenueSummary 
-          revenues={currentMonthData.revenues} 
-          month={selectedMonth} 
-          onUpdateRevenue={(day, cat, amt) => handleUpdateRevenue(selectedMonth, day, cat, amt)} 
-        />
+        {/* INPUT TABLES */}
+        <DailyRevenueSummary revenues={currentMonthData.revenues} month={selectedMonth} onUpdateRevenue={(day, cat, amt) => handleUpdateRevenue(selectedMonth, day, cat, amt)} />
+        <DailyAdSummary purchases={currentMonthData.purchases} month={selectedMonth} onUpdateAd={(day, cat, amt) => handleUpdateAd(selectedMonth, day, cat, amt)} />
 
-        <DailyAdSummary 
-          purchases={currentMonthData.purchases} 
-          month={selectedMonth} 
-          onUpdateAd={(day, cat, amt) => handleUpdateAd(selectedMonth, day, cat, amt)} 
-        />
-
+        {/* DETAILS CARDS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Revenue */}
-          <SectionCard title={`${selectedMonth}월 매출 상세 (복구됨)`} total={currentMonthRevenue} color="blue" icon={<Calendar className="w-6 h-6 text-blue-400" />}>
+          <SectionCard title={`${selectedMonth}월 매출 상세`} total={currentMonthRevenue} color="blue" icon={<Calendar className="w-6 h-6 text-blue-400" />}>
             <form onSubmit={(e) => { e.preventDefault(); handleAddRevenue(selectedMonth); }} className="space-y-4 mb-8 bg-blue-50/50 p-6 rounded-3xl border border-blue-100">
               <div className="grid grid-cols-2 gap-4">
                 <DaySelect value={newRevDay} onChange={setNewRevDay} month={selectedMonth} />
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">스토어명</label>
                   <select value={newRevCategory} onChange={(e) => setNewRevCategory(e.target.value as RevenueCategory)} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black">
-                    <option value="11번가">11번가</option>
-                    <option value="g마켓">g마켓</option>
-                    <option value="ns홈쇼핑">ns홈쇼핑</option>
-                    <option value="스마트스토어">스마트스토어</option>
-                    <option value="에이블리">에이블리</option>
-                    <option value="오늘의집">오늘의집</option>
-                    <option value="옥션">옥션</option>
-                    <option value="카페24">카페24</option>
-                    <option value="쿠팡(윙)">쿠팡(윙)</option>
-                    <option value="토스">토스</option>
-                    <option value="도매">도매</option>
-                    <option value="기타">기타</option>
+                    {revCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                   </select>
                 </div>
               </div>
               <AmountInput value={newRevAmount} onChange={setNewRevAmount} focusColor="blue" />
               <button type="submit" disabled={!newRevAmount.trim()} className="w-full py-4 bg-blue-600 text-white rounded-xl font-black hover:bg-blue-700 disabled:opacity-50 transition">매출 추가</button>
             </form>
-            <ItemList items={currentMonthData.revenues} onRemove={(id) => handleRemoveItem(selectedMonth, id, 'revenues')} color="blue" />
+            <ItemList items={currentMonthData.revenues} onRemove={(id:string) => handleRemoveItem(selectedMonth, id, 'revenues')} color="blue" />
           </SectionCard>
 
-          {/* Purchase */}
-          <SectionCard title={`${selectedMonth}월 매입 상세 (복구됨)`} total={currentMonthPurchase} color="orange" icon={<ShoppingBag className="w-6 h-6 text-orange-500" />}>
+          <SectionCard title={`${selectedMonth}월 매입 상세`} total={currentMonthPurchase} color="orange" icon={<ShoppingBag className="w-6 h-6 text-orange-500" />}>
             <form onSubmit={(e) => { e.preventDefault(); handleAddPurchase(selectedMonth); }} className="space-y-4 mb-8 bg-orange-50/50 p-6 rounded-3xl border border-orange-100">
               <div className="grid grid-cols-2 gap-4">
                 <DaySelect value={newPurDay} onChange={setNewPurDay} month={selectedMonth} />
@@ -608,49 +394,41 @@ export default function App() {
               <AmountInput value={newPurAmount} onChange={setNewPurAmount} focusColor="orange" />
               <button type="submit" disabled={!newPurVendor.trim() || !newPurAmount.trim()} className="w-full py-4 bg-orange-500 text-white rounded-xl font-black hover:bg-orange-600 disabled:opacity-50 transition">매입 추가</button>
             </form>
-            <ItemList items={currentMonthData.purchases.filter(p => !p.isAutoAd)} onRemove={(id) => handleRemoveItem(selectedMonth, id, 'purchases')} color="orange" />
+            <ItemList items={currentMonthData.purchases.filter(p => !p.isAutoAd)} onRemove={(id:string) => handleRemoveItem(selectedMonth, id, 'purchases')} color="orange" />
           </SectionCard>
 
-          {/* Expenditure */}
-          <SectionCard title={`${selectedMonth}월 지출 상세 (복구됨)`} total={currentMonthExpenditure} color="red" icon={<TrendingDown className="w-6 h-6 text-red-500" />}>
+          <SectionCard title={`${selectedMonth}월 지출 상세`} total={currentMonthExpenditure} color="red" icon={<TrendingDown className="w-6 h-6 text-red-500" />}>
             <form onSubmit={(e) => { e.preventDefault(); handleAddExpenditure(selectedMonth); }} className="space-y-4 mb-8 bg-red-50/50 p-6 rounded-3xl border border-red-100">
               <div className="grid grid-cols-2 gap-4">
                 <DaySelect value={newExpDay} onChange={setNewExpDay} month={selectedMonth} />
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">지출항목</label>
-                  <input type="text" value={newExpVendor} onChange={(e) => setNewExpVendor(e.target.value)} placeholder="항목 직접 입력" className="text-slate-900 w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black" />
+                  <input type="text" value={newExpVendor} onChange={(e) => setNewExpVendor(e.target.value)} placeholder="항목 직접 입력" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black" />
                 </div>
               </div>
               <AmountInput value={newExpAmount} onChange={setNewExpAmount} focusColor="red" />
               <button type="submit" disabled={!newExpVendor.trim() || !newExpAmount.trim()} className="w-full py-4 bg-red-500 text-white rounded-xl font-black hover:bg-red-600 disabled:opacity-50 transition">지출 추가</button>
             </form>
-            <ItemList items={currentMonthData.expenditures} onRemove={(id) => handleRemoveItem(selectedMonth, id, 'expenditures')} color="red" />
+            <ItemList items={currentMonthData.expenditures} onRemove={(id:string) => handleRemoveItem(selectedMonth, id, 'expenditures')} color="red" />
           </SectionCard>
-        </div>
-
         </div>
       </div>
     </div>
   );
 }
 
+// Subcomponents
 function SummaryCard({ icon, color, label, value, subtext }: any) {
   const colors: any = { blue: "bg-blue-50 text-blue-600", orange: "bg-orange-50 text-orange-600", red: "bg-red-50 text-red-600", green: "bg-green-50 text-green-600", purple: "bg-purple-50 text-purple-600" };
   return (
     <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem]">
       <CardContent className="p-8">
         <div className="flex items-center gap-5">
-          <div className={`p-4 ${colors[color]} rounded-[1.25rem] shadow-sm`}>
-            {React.cloneElement(icon as React.ReactElement, { size: 28 })}
-          </div>
+          <div className={`p-4 ${colors[color]} rounded-[1.25rem] shadow-sm`}>{React.cloneElement(icon, { size: 28 })}</div>
           <div>
             <div className="flex items-center gap-2 mb-1">
               <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{label}</p>
-              {subtext && (
-                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${colors[color]}`}>
-                  {subtext}
-                </span>
-              )}
+              {subtext && <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${colors[color]}`}>{subtext}</span>}
             </div>
             <h3 className="text-2xl font-black text-slate-900 tracking-tight">{value}</h3>
           </div>
@@ -707,7 +485,6 @@ function ItemList({ items, onRemove, color }: any) {
 function DailyAdSummary({ purchases, month, onUpdateAd }: { purchases: Entry[], month: number, onUpdateAd: (day: string, cat: string, amt: number) => void }) {
   const daysInMonth = new Date(2026, month, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
-
   const dailyData = days.map(day => {
     const dayExps = purchases.filter(e => e.date === day && e.isAutoAd);
     const naver = dayExps.filter(e => e.vendor === "네이버광고비").reduce((sum, e) => sum + e.amount, 0);
@@ -716,86 +493,24 @@ function DailyAdSummary({ purchases, month, onUpdateAd }: { purchases: Entry[], 
     const ohouse = dayExps.filter(e => e.vendor === "오늘의집 광고비").reduce((sum, e) => sum + e.amount, 0);
     return { day, naver, coupangRocket, coupangWing, ohouse, total: naver + coupangRocket + coupangWing + ohouse };
   });
-
   const formatKRW = (amount: number) => new Intl.NumberFormat('ko-KR').format(amount);
-
   return (
     <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem] overflow-hidden mb-8">
-      <CardHeader className="bg-slate-900 text-white pb-6 pt-8">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-xl font-black flex items-center gap-2">
-            <Percent className="w-6 h-6 text-purple-400" /> {month}월 일별 광고비 입력/집계
-          </CardTitle>
-          <p className="text-xs font-black text-slate-600">금액을 클릭하면 바로 수정할 수 있습니다.</p>
-        </div>
-      </CardHeader>
+      <CardHeader className="bg-slate-900 text-white pb-6 pt-8"><div className="flex justify-between items-center"><CardTitle className="text-xl font-black flex items-center gap-2"><Percent className="w-6 h-6 text-purple-400" /> {month}월 일별 광고비 입력/집계</CardTitle></div></CardHeader>
       <CardContent className="p-0">
         <div className="max-h-[500px] overflow-y-auto">
           <table className="w-full text-sm text-left">
-            <thead className="text-[10px] font-black text-slate-600 uppercase tracking-widest bg-slate-50 sticky top-0 z-10 shadow-sm">
-              <tr>
-                <th className="px-6 py-4">날짜</th>
-                <th className="px-6 py-4">네이버광고</th>
-                <th className="px-6 py-4">쿠팡로켓</th>
-                <th className="px-6 py-4">쿠팡윙</th>
-                <th className="px-6 py-4">오늘의집</th>
-                <th className="px-6 py-4 text-right">일별 합계</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {dailyData.map((d) => (
-                <tr key={d.day} className={`hover:bg-slate-50 transition-colors ${d.total > 0 ? "bg-white" : "bg-slate-50/20 opacity-60"}`}>
-                  <td className="px-6 py-4 font-black text-slate-700">{d.day}일</td>
-                  <td className="px-4 py-2">
-                    <input 
-                      type="text" 
-                      value={d.naver > 0 ? d.naver.toLocaleString() : ""} 
-                      onChange={(e) => onUpdateAd(d.day, "네이버광고비", parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)}
-                      placeholder="0"
-                      className="w-full bg-transparent border-none font-black text-blue-600 focus:ring-1 focus:ring-blue-100 rounded-lg px-2 py-1 text-sm outline-none"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input 
-                      type="text" 
-                      value={d.coupangRocket > 0 ? d.coupangRocket.toLocaleString() : ""} 
-                      onChange={(e) => onUpdateAd(d.day, "쿠팡로켓광고", parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)}
-                      placeholder="0"
-                      className="w-full bg-transparent border-none font-black text-orange-500 focus:ring-1 focus:ring-orange-100 rounded-lg px-2 py-1 text-sm outline-none"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input 
-                      type="text" 
-                      value={d.coupangWing > 0 ? d.coupangWing.toLocaleString() : ""} 
-                      onChange={(e) => onUpdateAd(d.day, "쿠팡윙광고", parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)}
-                      placeholder="0"
-                      className="w-full bg-transparent border-none font-black text-orange-400 focus:ring-1 focus:ring-orange-100 rounded-lg px-2 py-1 text-sm outline-none"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input 
-                      type="text" 
-                      value={d.ohouse > 0 ? d.ohouse.toLocaleString() : ""} 
-                      onChange={(e) => onUpdateAd(d.day, "오늘의집 광고비", parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)}
-                      placeholder="0"
-                      className="w-full bg-transparent border-none font-black text-red-500 focus:ring-1 focus:ring-red-100 rounded-lg px-2 py-1 text-sm outline-none"
-                    />
-                  </td>
-                  <td className="px-6 py-4 font-black text-slate-900 text-right bg-slate-50/50">{formatKRW(d.total)}원</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot className="bg-slate-900 text-white font-black sticky bottom-0 z-10 shadow-up">
-              <tr>
-                <td className="px-6 py-4">총계</td>
-                <td className="px-6 py-4 text-blue-300">{formatKRW(dailyData.reduce((sum, d) => sum + d.naver, 0))}</td>
-                <td className="px-6 py-4 text-orange-300">{formatKRW(dailyData.reduce((sum, d) => sum + d.coupangRocket, 0))}</td>
-                <td className="px-6 py-4 text-orange-200">{formatKRW(dailyData.reduce((sum, d) => sum + d.coupangWing, 0))}</td>
-                <td className="px-6 py-4 text-red-300">{formatKRW(dailyData.reduce((sum, d) => sum + d.ohouse, 0))}</td>
-                <td className="px-6 py-4 text-right text-purple-300">{formatKRW(dailyData.reduce((sum, d) => sum + d.total, 0))}원</td>
-              </tr>
-            </tfoot>
+            <thead className="text-[10px] font-black text-slate-600 uppercase tracking-widest bg-slate-50 sticky top-0 z-10 shadow-sm"><tr><th className="px-6 py-4">날짜</th><th className="px-6 py-4">네이버광고</th><th className="px-6 py-4">쿠팡로켓</th><th className="px-6 py-4">쿠팡윙</th><th className="px-6 py-4">오늘의집</th><th className="px-6 py-4 text-right">일별 합계</th></tr></thead>
+            <tbody className="divide-y divide-slate-100">{dailyData.map((d) => (
+              <tr key={d.day} className={`hover:bg-slate-50 transition-colors ${d.total > 0 ? "bg-white" : "bg-slate-50/20 opacity-60"}`}>
+                <td className="px-6 py-4 font-black text-slate-700">{d.day}일</td>
+                <td className="px-4 py-2"><input type="text" value={d.naver > 0 ? d.naver.toLocaleString() : ""} onChange={(e) => onUpdateAd(d.day, "네이버광고비", parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)} className="w-full bg-transparent border-none font-black text-blue-600 focus:ring-1 focus:ring-blue-100 rounded-lg px-2 py-1 text-sm outline-none" placeholder="0" /></td>
+                <td className="px-4 py-2"><input type="text" value={d.coupangRocket > 0 ? d.coupangRocket.toLocaleString() : ""} onChange={(e) => onUpdateAd(d.day, "쿠팡로켓광고", parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)} className="w-full bg-transparent border-none font-black text-orange-500 focus:ring-1 focus:ring-orange-100 rounded-lg px-2 py-1 text-sm outline-none" placeholder="0" /></td>
+                <td className="px-4 py-2"><input type="text" value={d.coupangWing > 0 ? d.coupangWing.toLocaleString() : ""} onChange={(e) => onUpdateAd(d.day, "쿠팡윙광고", parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)} className="w-full bg-transparent border-none font-black text-orange-400 focus:ring-1 focus:ring-orange-100 rounded-lg px-2 py-1 text-sm outline-none" placeholder="0" /></td>
+                <td className="px-4 py-2"><input type="text" value={d.ohouse > 0 ? d.ohouse.toLocaleString() : ""} onChange={(e) => onUpdateAd(d.day, "오늘의집 광고비", parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)} className="w-full bg-transparent border-none font-black text-red-500 focus:ring-1 focus:ring-red-100 rounded-lg px-2 py-1 text-sm outline-none" placeholder="0" /></td>
+                <td className="px-6 py-4 font-black text-slate-900 text-right bg-slate-50/50">{formatKRW(d.total)}원</td>
+              </tr>))}</tbody>
+            <tfoot className="bg-slate-900 text-white font-black sticky bottom-0 z-10 shadow-up"><tr><td className="px-6 py-4">총계</td><td className="px-6 py-4 text-blue-300">{formatKRW(dailyData.reduce((sum, d) => sum + d.naver, 0))}</td><td className="px-6 py-4 text-orange-300">{formatKRW(dailyData.reduce((sum, d) => sum + d.coupangRocket, 0))}</td><td className="px-6 py-4 text-orange-200">{formatKRW(dailyData.reduce((sum, d) => sum + d.coupangWing, 0))}</td><td className="px-6 py-4 text-red-300">{formatKRW(dailyData.reduce((sum, d) => sum + d.ohouse, 0))}</td><td className="px-6 py-4 text-right text-purple-300">{formatKRW(dailyData.reduce((sum, d) => sum + d.total, 0))}원</td></tr></tfoot>
           </table>
         </div>
       </CardContent>
@@ -806,69 +521,29 @@ function DailyAdSummary({ purchases, month, onUpdateAd }: { purchases: Entry[], 
 function DailyRevenueSummary({ revenues, month, onUpdateRevenue }: { revenues: RevenueEntry[], month: number, onUpdateRevenue: (day: string, cat: string, amt: number) => void }) {
   const daysInMonth = new Date(2026, month, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
-
   const dailyData = days.map(day => {
     const dayRevs = revenues.filter(e => e.date === day);
-    const catAmounts = revCategories.reduce((acc, cat) => {
-      acc[cat] = dayRevs.filter(e => e.category === cat).reduce((sum, e) => sum + e.amount, 0);
-      return acc;
-    }, {} as Record<string, number>);
+    const catAmounts = revCategories.reduce((acc, cat) => { acc[cat] = dayRevs.filter(e => e.category === cat).reduce((sum, e) => sum + e.amount, 0); return acc; }, {} as Record<string, number>);
     const total = Object.values(catAmounts).reduce((sum, amt) => sum + amt, 0);
     return { day, catAmounts, total };
   });
-
   const formatKRW = (amount: number) => new Intl.NumberFormat('ko-KR').format(amount);
-
   return (
     <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem] overflow-hidden mb-8">
-      <CardHeader className="bg-slate-900 text-white pb-6 pt-8">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-xl font-black flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-blue-400" /> {month}월 일별 매출 입력/집계
-          </CardTitle>
-          <p className="text-xs font-black text-slate-600">금액을 입력하면 실시간으로 저장됩니다.</p>
-        </div>
-      </CardHeader>
+      <CardHeader className="bg-slate-900 text-white pb-6 pt-8"><div className="flex justify-between items-center"><CardTitle className="text-xl font-black flex items-center gap-2"><TrendingUp className="w-6 h-6 text-blue-400" /> {month}월 일별 매출 입력/집계</CardTitle></div></CardHeader>
       <CardContent className="p-0">
         <div className="max-h-[500px] overflow-x-auto overflow-y-auto">
           <table className="w-full text-sm text-left">
-            <thead className="text-[10px] font-black text-slate-600 uppercase tracking-widest bg-slate-50 sticky top-0 z-10 shadow-sm">
-              <tr>
-                <th className="px-4 py-4 min-w-[50px] whitespace-nowrap">날짜</th>
-                {revCategories.map(cat => <th key={cat} className="px-2 py-4 min-w-[100px] whitespace-nowrap text-center">{cat}</th>)}
-                <th className="px-4 py-4 min-w-[100px] text-right whitespace-nowrap">일별 합계</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {dailyData.map((d) => (
-                <tr key={d.day} className={`hover:bg-slate-50 transition-colors ${d.total > 0 ? "bg-white" : "bg-slate-50/20 opacity-60"}`}>
-                  <td className="px-4 py-4 font-black text-slate-700 whitespace-nowrap">{d.day}일</td>
-                  {revCategories.map(cat => (
-                    <td key={cat} className="px-2 py-2">
-                      <input 
-                        type="text" 
-                        value={d.catAmounts[cat] > 0 ? d.catAmounts[cat].toLocaleString() : ""} 
-                        onChange={(e) => onUpdateRevenue(d.day, cat, parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)}
-                        placeholder="0"
-                        className="w-full min-w-[90px] bg-transparent border-none font-black text-blue-500 focus:ring-1 focus:ring-blue-100 rounded-lg px-2 py-1 text-sm outline-none text-center"
-                      />
-                    </td>
-                  ))}
-                  <td className="px-4 py-4 font-black text-slate-900 text-right bg-slate-50/50 whitespace-nowrap">{formatKRW(d.total)}원</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot className="bg-slate-900 text-white font-black sticky bottom-0 z-10 shadow-up">
-              <tr>
-                <td className="px-4 py-4 whitespace-nowrap">총계</td>
+            <thead className="text-[10px] font-black text-slate-600 uppercase tracking-widest bg-slate-50 sticky top-0 z-10 shadow-sm"><tr><th className="px-4 py-4 min-w-[50px]">날짜</th>{revCategories.map(cat => <th key={cat} className="px-2 py-4 min-w-[100px] text-center">{cat}</th>)}<th className="px-4 py-4 min-w-[100px] text-right">일별 합계</th></tr></thead>
+            <tbody className="divide-y divide-slate-100">{dailyData.map((d) => (
+              <tr key={d.day} className={`hover:bg-slate-50 transition-colors ${d.total > 0 ? "bg-white" : "bg-slate-50/20 opacity-60"}`}>
+                <td className="px-4 py-4 font-black text-slate-700">{d.day}일</td>
                 {revCategories.map(cat => (
-                  <td key={cat} className="px-2 py-4 text-center text-blue-300 whitespace-nowrap">
-                    {formatKRW(dailyData.reduce((sum, d) => sum + d.catAmounts[cat], 0))}
-                  </td>
+                  <td key={cat} className="px-2 py-2"><input type="text" value={d.catAmounts[cat] > 0 ? d.catAmounts[cat].toLocaleString() : ""} onChange={(e) => onUpdateRevenue(d.day, cat as RevenueCategory, parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)} className="w-full min-w-[90px] bg-transparent border-none font-black text-blue-500 focus:ring-1 focus:ring-blue-100 rounded-lg px-2 py-1 text-sm outline-none text-center" placeholder="0" /></td>
                 ))}
-                <td className="px-4 py-4 text-right text-purple-300 whitespace-nowrap">{formatKRW(dailyData.reduce((sum, d) => sum + d.total, 0))}원</td>
-              </tr>
-            </tfoot>
+                <td className="px-4 py-4 font-black text-slate-900 text-right bg-slate-50/50">{formatKRW(d.total)}원</td>
+              </tr>))}</tbody>
+            <tfoot className="bg-slate-900 text-white font-black sticky bottom-0 z-10 shadow-up"><tr><td className="px-4 py-4">총계</td>{revCategories.map(cat => (<td key={cat} className="px-2 py-4 text-center text-blue-300">{formatKRW(dailyData.reduce((sum, d) => sum + d.catAmounts[cat], 0))}</td>))}<td className="px-4 py-4 text-right text-purple-300">{formatKRW(dailyData.reduce((sum, d) => sum + d.total, 0))}원</td></tr></tfoot>
           </table>
         </div>
       </CardContent>
