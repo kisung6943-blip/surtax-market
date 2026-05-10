@@ -130,98 +130,57 @@ export default function App() {
     }
   };
 
-  // Initial Load (Authentication only, multi-company removed)
+  // Simplified Initial Load (Local First)
   useEffect(() => {
-    const init = async () => {
+    const scavengeAndLoad = () => {
       setSyncStatus('syncing');
-      setSyncStatus('done');
-    };
-    init();
-  }, []);
+      
+      // Look for any surtax data key and pick the largest one
+      const keys = Object.keys(localStorage).filter(k => k.startsWith('surtax_market_data'));
+      let bestKey = '';
+      let maxLen = -1;
 
-  // Load Data for Active Company (Supabase first, fallback to localStorage)
-  useEffect(() => {
-    if (!activeCompanyId) return;
-    
-    localStorage.setItem("surtax_market_active_id", activeCompanyId);
-
-    const loadData = async () => {
-      setSyncStatus('syncing');
-      const key = `surtax_market_data_es`;
-
-      // Try Supabase first
-      const cloudData = await loadFromSupabase(key);
-      if (cloudData && Array.isArray(cloudData) && cloudData.length > 0) {
-        const migrated = migrateData(cloudData);
-        setData(migrated);
-        localStorage.setItem(key, JSON.stringify(migrated));
-        setHasLoaded(true);
-        setSyncStatus('done');
-        return;
-      }
-
-      // Emergency Scavenge from any localStorage key
-      const scavengeData = () => {
-        const checkValue = (val: string) => {
+      keys.forEach(k => {
+        const val = localStorage.getItem(k);
+        if (val) {
           try {
             const parsed = JSON.parse(val);
-            if (!Array.isArray(parsed)) return false;
-            return parsed.some((m: any) => 
-              (m.revenues && m.revenues.length > 0) || 
-              (m.purchases && m.purchases.length > 0) || 
-              (m.expenses && m.expenses.length > 0) || 
-              (m.expenditures && m.expenditures.length > 0)
-            );
-          } catch (e) { return false; }
-        };
-
-        // 1. Check current fixed key
-        const current = localStorage.getItem(key);
-        if (current && checkValue(current)) return current;
-        
-        // 2. Check legacy key
-        const legacy = localStorage.getItem('surtax_market_data');
-        if (legacy && checkValue(legacy)) return legacy;
-
-        // 3. Check any key containing 'surtax'
-        for (let i = 0; i < localStorage.length; i++) {
-          const k = localStorage.key(i);
-          if (k && k.includes('surtax')) {
-            const val = localStorage.getItem(k);
-            if (val && checkValue(val)) return val;
-          }
+            if (Array.isArray(parsed)) {
+              if (val.length > maxLen) {
+                maxLen = val.length;
+                bestKey = k;
+              }
+            }
+          } catch(e) {}
         }
-        return null;
-      };
+      });
 
-      const foundData = scavengeData();
-      if (foundData) {
-        try {
-          const parsed = JSON.parse(foundData);
-          const migrated = migrateData(parsed);
-          setData(migrated);
-          localStorage.setItem(key, JSON.stringify(migrated));
-          saveToSupabase(key, migrated);
-        } catch (e) {
-          setData(getInitialData());
+      if (bestKey) {
+        console.log("Loading data from best found key:", bestKey);
+        const val = localStorage.getItem(bestKey);
+        if (val) {
+          setData(migrateData(JSON.parse(val)));
         }
       } else {
         setData(getInitialData());
       }
+      
       setHasLoaded(true);
       setSyncStatus('done');
     };
-    loadData();
-  }, [activeCompanyId]);
+    
+    scavengeAndLoad();
+  }, []);
 
-  // Save Data (localStorage + Supabase)
+
+  // Save Data (Local Only for safety)
   useEffect(() => {
-    if (activeCompanyId && hasLoaded) {
-      const key = `surtax_market_data_${activeCompanyId}`;
-      localStorage.setItem(key, JSON.stringify(data));
-      saveToSupabase(key, data);
+    if (hasLoaded) {
+      localStorage.setItem('surtax_market_data_es', JSON.stringify(data));
+      // Temporarily disabled cloud save to prevent overwrite
+      // saveToSupabase('surtax_market_data_es', data);
     }
-  }, [data, activeCompanyId, hasLoaded]);
+  }, [data, hasLoaded]);
 
   const handleReset = () => {
     if (window.confirm("현재 업체의 모든 데이터를 초기화하시겠습니까?")) {
