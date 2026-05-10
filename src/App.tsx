@@ -463,10 +463,20 @@ export default function App() {
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-4">
               <h1 className="text-3xl font-black tracking-tight text-slate-900 whitespace-nowrap">마켓 통합 회계 장부</h1>
-              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-2xl px-4 py-2 shadow-sm">
-                <span className="text-lg font-black text-blue-600">(ES)</span>
-              </div>
-              <button onClick={handleLogout} className="p-2 text-slate-600 hover:text-blue-500 transition-colors"><Unlock className="w-5 h-5" /></button>
+              <select 
+                value={activeCompanyId} 
+                onChange={(e) => {
+                  setHasLoaded(false);
+                  setActiveCompanyId(e.target.value);
+                }} 
+                className="bg-white border border-slate-200 rounded-2xl px-4 py-2 text-sm font-black outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+              >
+                {companies.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <button onClick={handleAddCompany} className="p-2 text-slate-300 hover:text-blue-500 transition-colors"><Plus className="w-5 h-5" /></button>
+              <button onClick={handleLogout} className="p-2 text-slate-300 hover:text-blue-500 transition-colors"><Unlock className="w-5 h-5" /></button>
               <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black ${
                 syncStatus === 'syncing' ? 'bg-yellow-50 text-yellow-600 border border-yellow-200' :
                 syncStatus === 'done' ? 'bg-green-50 text-green-600 border border-green-200' :
