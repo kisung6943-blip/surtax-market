@@ -407,17 +407,24 @@ export default function App() {
   const yearlyNetProfit = yearlyRevenue - (yearlyPurchase + yearlyExpenditure);
   const yearlyPurchaseRatio = yearlyRevenue > 0 ? ((yearlyPurchase / yearlyRevenue) * 100).toFixed(1) : "0.0";
 
-  const chartData = useMemo(() => data.map(m => ({
-    month: m.month,
-    revenue: calculateTotal(m.revenues),
-    purchase: calculateTotalExcludingAds(m.purchases),
-    expenditure: calculateTotal(m.expenditures),
-  })), [data]);
+  const chartData = useMemo(() => data.map(m => {
+    const revenue = calculateTotal(m.revenues);
+    const purchase = calculateTotalExcludingAds(m.purchases);
+    const expenditure = calculateTotal(m.expenditures);
+    return {
+      month: m.month,
+      revenue,
+      purchase,
+      expenditure,
+      profit: revenue - (purchase + expenditure)
+    };
+  }), [data]);
 
   const currentMonthData = data.find(d => d.month === selectedMonth)!;
   const currentMonthRevenue = calculateTotal(currentMonthData.revenues);
   const currentMonthPurchase = calculateTotalExcludingAds(currentMonthData.purchases);
   const currentMonthExpenditure = calculateTotal(currentMonthData.expenditures);
+  const currentMonthProfit = currentMonthRevenue - (currentMonthPurchase + currentMonthExpenditure);
 
   if (!isAuthenticated) {
     return (
@@ -480,9 +487,15 @@ export default function App() {
           <SummaryCard icon={<Percent />} color="purple" label="연간 매입 비율" value={`${yearlyPurchaseRatio}%`} subtext="지출 제외" />
         </div>
 
-        <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem]">
-          <CardHeader><CardTitle className="text-lg font-black flex items-center gap-2"><TrendingUp className="w-5 h-5 text-blue-500" /> 월별 회계 추이 (매출/매입/지출)</CardTitle></CardHeader>
-          <CardContent>
+        <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem] overflow-hidden">
+          <CardHeader className="bg-white border-b border-slate-50 pb-6 pt-8">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-lg font-black flex items-center gap-2">
+                <BarChart className="w-5 h-5 text-blue-500" /> 월별 회계 추이 (매출/매입/지출/순익)
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
@@ -494,16 +507,38 @@ export default function App() {
                   <Bar dataKey="revenue" name="매출" fill="#3B82F6" radius={[6, 6, 0, 0]} />
                   <Bar dataKey="purchase" name="매입" fill="#F59E0B" radius={[6, 6, 0, 0]} />
                   <Bar dataKey="expenditure" name="지출" fill="#EF4444" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="profit" name="순익" fill="#10B981" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
 
-        <div className="flex overflow-x-auto pb-4 gap-2 snap-x no-scrollbar">
-          {data.map(m => (
-            <button key={m.month} onClick={() => setSelectedMonth(m.month)} className={`px-6 py-3 rounded-2xl whitespace-nowrap text-sm font-black transition snap-start border-2 ${selectedMonth === m.month ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/20' : 'bg-white text-slate-700 hover:bg-slate-100 border-white shadow-sm'}`}>{m.month}월</button>
-          ))}
+        <div className="space-y-4">
+          <div className="flex overflow-x-auto pb-4 gap-2 snap-x no-scrollbar">
+            {data.map(m => (
+              <button key={m.month} onClick={() => setSelectedMonth(m.month)} className={`px-6 py-3 rounded-2xl whitespace-nowrap text-sm font-black transition snap-start border-2 ${selectedMonth === m.month ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/20' : 'bg-white text-slate-700 hover:bg-slate-100 border-white shadow-sm'}`}>{m.month}월</button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{selectedMonth}월 매출</p>
+              <h4 className="text-lg font-black text-blue-600">{formatCurrency(currentMonthRevenue)}</h4>
+            </div>
+            <div className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{selectedMonth}월 매입</p>
+              <h4 className="text-lg font-black text-orange-500">{formatCurrency(currentMonthPurchase)}</h4>
+            </div>
+            <div className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-100">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{selectedMonth}월 지출</p>
+              <h4 className="text-lg font-black text-red-500">{formatCurrency(currentMonthExpenditure)}</h4>
+            </div>
+            <div className="bg-slate-900 p-5 rounded-[1.5rem] shadow-lg shadow-emerald-500/10 border border-slate-800">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{selectedMonth}월 순이익</p>
+              <h4 className={`text-lg font-black ${currentMonthProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{formatCurrency(currentMonthProfit)}</h4>
+            </div>
+          </div>
         </div>
 
         <DailyRevenueSummary 
