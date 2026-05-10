@@ -87,6 +87,7 @@ export default function App() {
   const [newExpDay, setNewExpDay] = useState(new Date().getDate().toString().padStart(2, '0'));
 
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'done' | 'error'>('idle');
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   // Helper: migrate old data format
   const migrateData = (parsed: any[]) => parsed.map((m: any) => {
@@ -209,6 +210,7 @@ export default function App() {
       } else {
         setData(getInitialData());
       }
+      setHasLoaded(true);
       setSyncStatus('done');
     };
     loadData();
@@ -216,12 +218,12 @@ export default function App() {
 
   // Save Data (localStorage + Supabase)
   useEffect(() => {
-    if (activeCompanyId) {
+    if (activeCompanyId && hasLoaded) {
       const key = `surtax_market_data_${activeCompanyId}`;
       localStorage.setItem(key, JSON.stringify(data));
       saveToSupabase(key, data);
     }
-  }, [data, activeCompanyId]);
+  }, [data, activeCompanyId, hasLoaded]);
 
   const handleAddCompany = () => {
     const name = window.prompt("새 업체 이름을 입력하세요:");
