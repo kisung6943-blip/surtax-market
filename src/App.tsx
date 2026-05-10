@@ -331,9 +331,8 @@ export default function App() {
         {/* HEADER */}
         <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-black tracking-tight text-blue-600">마켓 통합 회계 장부 [배포 완료 v2.7]</h1>
+            <h1 className="text-3xl font-black tracking-tight">마켓 통합 회계 장부</h1>
             <div className="bg-white border border-slate-200 rounded-2xl px-4 py-2 shadow-sm font-black text-blue-600">(ES)</div>
-            <div className="text-xs font-black text-slate-900 bg-yellow-400 px-3 py-1 rounded-full animate-pulse">지금 바로 확인하세요!</div>
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black border transition-all ${
               syncStatus === 'syncing' ? 'bg-blue-50 text-blue-500 border-blue-100 animate-pulse' :
               syncStatus === 'done' ? 'bg-emerald-50 text-emerald-500 border-emerald-100' :
