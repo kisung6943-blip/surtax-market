@@ -1,3 +1,6 @@
+import { DEPLOY_TRIGGER } from './trigger';
+console.log('Deploy Trigger:', DEPLOY_TRIGGER);
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   TrendingUp, 
@@ -99,15 +102,18 @@ export default function App() {
 
         if (error && error.code !== 'PGRST116') throw error;
 
+        if (dbData && dbData.data) {
+          const rawData = dbData.data;
           // Migration: Map old categories to new ones + move ads
+          const adVendors = ["네이버광고", "쿠팡로켓광고", "쿠팡윙광고", "오늘의집광고"];
           const migrated = rawData.map((m: any) => {
-            const adEntriesFromPurchases = (m.purchases || []).filter((p: any) => p.isAutoAd);
-            const cleanPurchases = (m.purchases || []).filter((p: any) => !p.isAutoAd);
+            const adEntriesFromPurchases = (m.purchases || []).filter((p: any) => p.isAutoAd || p.id.startsWith('ad_') || adVendors.includes(p.vendor));
+            const cleanPurchases = (m.purchases || []).filter((p: any) => !p.isAutoAd && !p.id.startsWith('ad_') && !adVendors.includes(p.vendor));
             // Combine existing ads with those found in purchases, ensuring no duplicates if migration runs twice
             const combinedAds = [...(m.ads || [])];
             adEntriesFromPurchases.forEach((ae: any) => {
-              if (!combinedAds.find(x => x.id === ae.id)) {
-                combinedAds.push({ ...ae, isAutoAd: undefined }); // Remove the flag as it's no longer needed
+              if (!combinedAds.find(x => x.date === ae.date && x.vendor === ae.vendor)) {
+                combinedAds.push({ ...ae, isAutoAd: undefined }); 
               }
             });
 
@@ -128,12 +134,13 @@ export default function App() {
           const savedData = localStorage.getItem('surtax_market_data_es');
           if (savedData) {
             const rawData = JSON.parse(savedData);
+            const adVendors = ["네이버광고", "쿠팡로켓광고", "쿠팡윙광고", "오늘의집광고"];
             const migrated = rawData.map((m: any) => {
-              const adEntriesFromPurchases = (m.purchases || []).filter((p: any) => p.isAutoAd);
-              const cleanPurchases = (m.purchases || []).filter((p: any) => !p.isAutoAd);
+              const adEntriesFromPurchases = (m.purchases || []).filter((p: any) => p.isAutoAd || p.id.startsWith('ad_') || adVendors.includes(p.vendor));
+              const cleanPurchases = (m.purchases || []).filter((p: any) => !p.isAutoAd && !p.id.startsWith('ad_') && !adVendors.includes(p.vendor));
               const combinedAds = [...(m.ads || [])];
               adEntriesFromPurchases.forEach((ae: any) => {
-                if (!combinedAds.find(x => x.id === ae.id)) {
+                if (!combinedAds.find(x => x.date === ae.date && x.vendor === ae.vendor)) {
                   combinedAds.push({ ...ae, isAutoAd: undefined });
                 }
               });
@@ -250,9 +257,13 @@ export default function App() {
   const handleUpdateAd = (month: number, day: string, vendor: string, amt: number) => {
     setData(prev => prev.map(m => {
       if (m.month !== month) return m;
+      const adVendors = ["네이버광고", "쿠팡로켓광고", "쿠팡윙광고", "오늘의집광고"];
+      // DATA CLEANER: Forcefully remove any ad-related entries from purchases when summary table is updated
+      const cleanPurchases = (m.purchases || []).filter(p => !p.id.startsWith('ad_') && !adVendors.includes(p.vendor));
       const otherAds = (m.ads || []).filter(p => !(p.date === day && p.vendor === vendor));
-      if (amt === 0) return { ...m, ads: otherAds };
-      return { ...m, ads: [...otherAds, { id: `ad_${day}_${vendor}`, date: day, vendor, amount: amt }] };
+      
+      if (amt === 0) return { ...m, ads: otherAds, purchases: cleanPurchases };
+      return { ...m, ads: [...otherAds, { id: `ad_${day}_${vendor}`, date: day, vendor, amount: amt }], purchases: cleanPurchases };
     }));
   };
 
@@ -278,13 +289,18 @@ export default function App() {
   const yearlyExpenditure = data.reduce((sum, m) => sum + m.expenditures.reduce((s, e) => s + e.amount, 0), 0);
   const yearlyNetProfit = yearlyRevenue - yearlyPurchase - yearlyExpenditure;
 
-  const chartData = data.map(m => ({
-    month: m.month,
-    revenue: m.revenues.reduce((s, r) => s + r.amount, 0),
-    purchase: m.purchases.reduce((s, p) => s + p.amount, 0),
-    expenditure: m.expenditures.reduce((s, e) => s + e.amount, 0),
-    profit: m.revenues.reduce((s, r) => s + r.amount, 0) - m.purchases.reduce((s, p) => s + p.amount, 0) - m.expenditures.reduce((s, e) => s + e.amount, 0)
-  }));
+  const chartData = data.map(m => {
+    const rev = m.revenues.reduce((s, r) => s + r.amount, 0);
+    const pur = m.purchases.reduce((s, p) => s + p.amount, 0);
+    const exp = m.expenditures.reduce((s, e) => s + e.amount, 0);
+    return {
+      month: m.month,
+      revenue: rev,
+      purchase: pur,
+      expenditure: exp,
+      profit: rev - pur - exp
+    };
+  });
 
   const formatCurrency = (amt: number) => new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW', maximumFractionDigits: 0 }).format(amt);
 
@@ -315,8 +331,9 @@ export default function App() {
         {/* HEADER */}
         <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-black tracking-tight">마켓 통합 회계 장부</h1>
+            <h1 className="text-3xl font-black tracking-tight text-blue-600">마켓 통합 회계 장부 [배포 완료 v2.7]</h1>
             <div className="bg-white border border-slate-200 rounded-2xl px-4 py-2 shadow-sm font-black text-blue-600">(ES)</div>
+            <div className="text-xs font-black text-slate-900 bg-yellow-400 px-3 py-1 rounded-full animate-pulse">지금 바로 확인하세요!</div>
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black border transition-all ${
               syncStatus === 'syncing' ? 'bg-blue-50 text-blue-500 border-blue-100 animate-pulse' :
               syncStatus === 'done' ? 'bg-emerald-50 text-emerald-500 border-emerald-100' :
