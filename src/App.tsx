@@ -5,6 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { supabase } from './lib/supabase';
 
+const AD_VENDORS = ["네이버광고비", "쿠팡로켓광고", "쿠팡윙광고", "오늘의집 광고비"];
+const adCategories = ["네이버광고비", "쿠팡로켓광고", "쿠팡윙광고", "오늘의집 광고비"];
+const revCategories = ["11번가", "g마켓", "ns홈쇼핑", "스마트스토어", "에이블리", "오늘의집", "옥션", "카페24", "쿠팡(윙)", "토스", "도매", "기타"];
+
 type RevenueCategory = string;
 
 type RevenueEntry = {
@@ -690,10 +694,6 @@ function ItemList({ items, onRemove, color }: any) {
   );
 }
 
-const AD_VENDORS = ["네이버광고비", "쿠팡로켓광고", "쿠팡윙광고", "오늘의집 광고비"];
-
-const adCategories = ["네이버광고비", "쿠팡로켓광고", "쿠팡윙광고", "오늘의집 광고비"];
-
 function DailyAdSummary({ purchases, month, onUpdateAd }: { purchases: Entry[], month: number, onUpdateAd: (day: string, cat: string, amt: number) => void }) {
   const daysInMonth = new Date(2026, month, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
@@ -792,8 +792,6 @@ function DailyAdSummary({ purchases, month, onUpdateAd }: { purchases: Entry[], 
     </Card>
   );
 }
-
-const revCategories = ["11번가", "g마켓", "ns홈쇼핑", "스마트스토어", "에이블리", "오늘의집", "옥션", "카페24", "쿠팡(윙)", "토스", "도매", "기타"];
 
 function DailyRevenueSummary({ revenues, month, onUpdateRevenue }: { revenues: RevenueEntry[], month: number, onUpdateRevenue: (day: string, cat: string, amt: number) => void }) {
   const daysInMonth = new Date(2026, month, 0).getDate();
