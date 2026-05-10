@@ -90,15 +90,15 @@ export default function App() {
     const fetchData = async () => {
       try {
         const { data: dbData, error } = await supabase
-          .from('surtax_market_data')
-          .select('month_data')
+          .from('surtax_data')
+          .select('data')
           .eq('id', 'market_ledger_es')
           .single();
 
         if (error && error.code !== 'PGRST116') throw error;
 
-        if (dbData) {
-          setData(dbData.month_data);
+        if (dbData && dbData.data) {
+          setData(dbData.data);
         } else {
           const savedData = localStorage.getItem('surtax_market_data_es');
           if (savedData) setData(JSON.parse(savedData));
@@ -122,8 +122,8 @@ export default function App() {
       setSyncStatus('syncing');
       try {
         const { error } = await supabase
-          .from('surtax_market_data')
-          .upsert({ id: 'market_ledger_es', month_data: data, updated_at: new Date().toISOString() });
+          .from('surtax_data')
+          .upsert({ id: 'market_ledger_es', data: data });
         
         if (error) throw error;
         setSyncStatus('done');
