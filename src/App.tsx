@@ -23,8 +23,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from './lib/supabase';
 
 // --- Types ---
-type RevenueCategory = '스마트스토어' | '쿠팡윙' | '쿠팡로켓배송' | '오늘의집매출' | '옥션' | 'G마켓' | '11번가' | '도매' | '현금입금' | '기타';
-const revCategories: RevenueCategory[] = ['스마트스토어', '쿠팡윙', '쿠팡로켓배송', '오늘의집매출', '옥션', 'G마켓', '11번가', '도매', '현금입금', '기타'];
+type RevenueCategory = '11번가' | 'G마켓' | '스마트스토어' | '에이블리' | '오늘의집' | '옥션' | '카페24' | '쿠팡(자동)' | '도매' | '현금입금' | '기타';
+const revCategories: RevenueCategory[] = ['11번가', 'G마켓', '스마트스토어', '에이블리', '오늘의집', '옥션', '카페24', '쿠팡(자동)', '도매', '현금입금', '기타'];
 
 interface Entry {
   id: string;
@@ -69,7 +69,7 @@ export default function App() {
 
   // Form states
   const [newRevDay, setNewRevDay] = useState(new Date().getDate().toString().padStart(2, '0'));
-  const [newRevCategory, setNewRevCategory] = useState<RevenueCategory>('스마트스토어');
+  const [newRevCategory, setNewRevCategory] = useState<RevenueCategory>('11번가');
   const [newRevAmount, setNewRevAmount] = useState("");
 
   const [newPurDay, setNewPurDay] = useState(new Date().getDate().toString().padStart(2, '0'));
