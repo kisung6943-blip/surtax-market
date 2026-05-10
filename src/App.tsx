@@ -39,12 +39,45 @@ type Company = {
   name: string;
 };
 
-const getInitialData = (): MonthData[] => Array.from({ length: 12 }, (_, i) => ({
-  month: i + 1,
-  revenues: [],
-  purchases: [],
-  expenditures: [],
-}));
+const getInitialData = (): MonthData[] => {
+  const initialData: MonthData[] = Array.from({ length: 12 }, (_, i) => ({
+    month: i + 1,
+    revenues: [],
+    purchases: [],
+    expenditures: [],
+  }));
+
+  // Emergency Manual Reconstruction from Screenshots
+  // April (Month 4)
+  const april = initialData[3];
+  april.revenues = [
+    { id: 'rec_r1', date: '2026-04-30', category: '11번가', amount: 538940, vendor: '' },
+    { id: 'rec_r2', date: '2026-04-30', category: 'g마켓', amount: 1341406, vendor: '' },
+    { id: 'rec_r3', date: '2026-04-30', category: 'ns홈쇼핑', amount: 50400, vendor: '' },
+    { id: 'rec_r4', date: '2026-04-30', category: '스마트스토어', amount: 40509780, vendor: '' },
+    { id: 'rec_r5', date: '2026-04-30', category: '에이블리', amount: 68000, vendor: '' },
+    { id: 'rec_r6', date: '2026-04-30', category: '오늘의집', amount: 11399450, vendor: '' },
+    { id: 'rec_r7', date: '2026-04-30', category: '옥션', amount: 345634, vendor: '' },
+    { id: 'rec_r8', date: '2026-04-30', category: '카페24', amount: 1516720, vendor: '' },
+    { id: 'rec_r9', date: '2026-04-30', category: '쿠팡(윙)', amount: 40581620, vendor: '' },
+    { id: 'rec_r10', date: '2026-04-30', category: '토스', amount: 133000, vendor: '' },
+    { id: 'rec_r11', date: '2026-04-30', category: '도매', amount: 4830400, vendor: '' },
+  ];
+  april.purchases = [
+    { id: 'rec_p1', date: '2026-04-30', vendor: '4월 매입 총계 (복구됨)', amount: 133607804, isAutoAd: false }
+  ];
+  april.expenditures = [
+    { id: 'rec_e1', date: '2026-04-30', vendor: '4월 지출 총계 (복구됨)', amount: 18701479 }
+  ];
+
+  // May (Month 5)
+  const may = initialData[4];
+  may.revenues = [
+    { id: 'rec_r12', date: '2026-05-10', category: '기타', amount: 23301862, vendor: '' }
+  ];
+
+  return initialData;
+};
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -172,13 +205,17 @@ export default function App() {
       });
 
       if (bestKey) {
-        console.log("Loading data from best found local key:", bestKey);
+        console.log("Checking best found local key:", bestKey);
         const val = localStorage.getItem(bestKey);
         if (val) {
-          setData(migrateData(JSON.parse(val)));
+          const parsed = JSON.parse(val);
+          // Only overwrite if this local data is NOT empty
+          if (parsed.some((m:any) => (m.revenues && m.revenues.length > 0) || (m.purchases && m.purchases.length > 0))) {
+            setData(migrateData(parsed));
+          } else {
+            console.log("Local data was empty, keeping recovery data.");
+          }
         }
-      } else {
-        setData(getInitialData());
       }
       
       setHasLoaded(true);
