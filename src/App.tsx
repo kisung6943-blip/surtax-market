@@ -130,12 +130,28 @@ export default function App() {
     }
   };
 
-  // Simplified Initial Load (Local First)
+  // Simplified Initial Load (Cloud Recovery First)
   useEffect(() => {
-    const scavengeAndLoad = () => {
+    const scavengeAndLoad = async () => {
       setSyncStatus('syncing');
       
-      // Look for any surtax data key and pick the largest one
+      // 1. Try Specific Known Cloud IDs from Screenshot
+      const targetIds = ['company_1778021612050', 'es', 'surtax_market_data'];
+      for (const id of targetIds) {
+        const key = id.startsWith('surtax_') ? id : `surtax_market_data_${id}`;
+        try {
+          const cloudData = await loadFromSupabase(key);
+          if (cloudData && Array.isArray(cloudData) && cloudData.some((m:any) => (m.revenues && m.revenues.length > 0) || (m.purchases && m.purchases.length > 0))) {
+            console.log("Recovered from Cloud ID:", key);
+            setData(migrateData(cloudData));
+            setHasLoaded(true);
+            setSyncStatus('done');
+            return;
+          }
+        } catch (e) {}
+      }
+
+      // 2. Fallback: Look for any surtax data key in localStorage and pick the largest one
       const keys = Object.keys(localStorage).filter(k => k.startsWith('surtax_market_data'));
       let bestKey = '';
       let maxLen = -1;
@@ -156,7 +172,7 @@ export default function App() {
       });
 
       if (bestKey) {
-        console.log("Loading data from best found key:", bestKey);
+        console.log("Loading data from best found local key:", bestKey);
         const val = localStorage.getItem(bestKey);
         if (val) {
           setData(migrateData(JSON.parse(val)));
@@ -173,12 +189,11 @@ export default function App() {
   }, []);
 
 
-  // Save Data (Local Only for safety)
+  // !!! SAFETY: SAVE IS DISABLED DURING RECOVERY !!!
   useEffect(() => {
-    if (hasLoaded) {
-      localStorage.setItem('surtax_market_data_es', JSON.stringify(data));
-      // Temporarily disabled cloud save to prevent overwrite
-      // saveToSupabase('surtax_market_data_es', data);
+    if (hasLoaded && data.some(m => m.revenues.length > 0)) {
+      // localStorage.setItem('surtax_market_data_es', JSON.stringify(data));
+      console.log("Save is currently disabled for safety. Data is in memory.");
     }
   }, [data, hasLoaded]);
 
