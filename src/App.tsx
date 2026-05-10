@@ -491,8 +491,6 @@ export default function App() {
           </div>
         </header>
 
-        </header>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           <SummaryCard icon={<TrendingUp />} color="blue" label="연간 총 매출액" value={formatCurrency(yearlyRevenue)} />
           <SummaryCard icon={<ShoppingBag />} color="orange" label="연간 총 매입액" value={formatCurrency(yearlyPurchase)} subtext={`매출대비 ${yearlyPurchaseRatio}%`} />
@@ -569,7 +567,7 @@ export default function App() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Revenue */}
-          <SectionCard title={`${selectedMonth}월 매출 상세`} total={currentMonthRevenue} color="blue" icon={<Calendar className="w-6 h-6 text-blue-400" />}>
+          <SectionCard title={`${selectedMonth}월 매출 상세 (복구됨)`} total={currentMonthRevenue} color="blue" icon={<Calendar className="w-6 h-6 text-blue-400" />}>
             <form onSubmit={(e) => { e.preventDefault(); handleAddRevenue(selectedMonth); }} className="space-y-4 mb-8 bg-blue-50/50 p-6 rounded-3xl border border-blue-100">
               <div className="grid grid-cols-2 gap-4">
                 <DaySelect value={newRevDay} onChange={setNewRevDay} month={selectedMonth} />
@@ -598,7 +596,7 @@ export default function App() {
           </SectionCard>
 
           {/* Purchase */}
-          <SectionCard title={`${selectedMonth}월 매입 상세`} total={currentMonthPurchase} color="orange" icon={<ShoppingBag className="w-6 h-6 text-orange-500" />}>
+          <SectionCard title={`${selectedMonth}월 매입 상세 (복구됨)`} total={currentMonthPurchase} color="orange" icon={<ShoppingBag className="w-6 h-6 text-orange-500" />}>
             <form onSubmit={(e) => { e.preventDefault(); handleAddPurchase(selectedMonth); }} className="space-y-4 mb-8 bg-orange-50/50 p-6 rounded-3xl border border-orange-100">
               <div className="grid grid-cols-2 gap-4">
                 <DaySelect value={newPurDay} onChange={setNewPurDay} month={selectedMonth} />
@@ -614,7 +612,7 @@ export default function App() {
           </SectionCard>
 
           {/* Expenditure */}
-          <SectionCard title={`${selectedMonth}월 지출 상세`} total={currentMonthExpenditure} color="red" icon={<TrendingDown className="w-6 h-6 text-red-500" />}>
+          <SectionCard title={`${selectedMonth}월 지출 상세 (복구됨)`} total={currentMonthExpenditure} color="red" icon={<TrendingDown className="w-6 h-6 text-red-500" />}>
             <form onSubmit={(e) => { e.preventDefault(); handleAddExpenditure(selectedMonth); }} className="space-y-4 mb-8 bg-red-50/50 p-6 rounded-3xl border border-red-100">
               <div className="grid grid-cols-2 gap-4">
                 <DaySelect value={newExpDay} onChange={setNewExpDay} month={selectedMonth} />
