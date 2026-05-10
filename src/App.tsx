@@ -47,6 +47,7 @@ interface MonthData {
   revenues: RevenueEntry[];
   purchases: Entry[];
   expenditures: Entry[];
+  ads: Entry[];
 }
 
 const getInitialData = (): MonthData[] => {
@@ -55,6 +56,7 @@ const getInitialData = (): MonthData[] => {
     revenues: [],
     purchases: [],
     expenditures: [],
+    ads: [],
   }));
 };
 
@@ -97,32 +99,42 @@ export default function App() {
 
         if (error && error.code !== 'PGRST116') throw error;
 
-        if (dbData && dbData.data) {
-          const rawData = dbData.data;
-          // Migration: Map old categories to new ones
-          const migrated = rawData.map((m: any) => ({
-            ...m,
-            revenues: m.revenues.map((r: any) => {
-              let cat = r.category;
-              if (cat === '오늘의집매출') cat = '오늘의집';
-              if (cat === '쿠팡윙' || cat === '쿠팡로켓배송') cat = '쿠팡(자동)';
-              return { ...r, category: cat };
-            })
-          }));
-          setData(migrated);
-        } else {
-          const savedData = localStorage.getItem('surtax_market_data_es');
-          if (savedData) {
-            const rawData = JSON.parse(savedData);
-            const migrated = rawData.map((m: any) => ({
+          // Migration: Map old categories to new ones + move ads
+          const migrated = rawData.map((m: any) => {
+            const adEntries = m.purchases?.filter((p: any) => p.isAutoAd) || [];
+            const cleanPurchases = m.purchases?.filter((p: any) => !p.isAutoAd) || [];
+            return {
               ...m,
+              purchases: cleanPurchases,
+              ads: m.ads || adEntries,
               revenues: m.revenues.map((r: any) => {
                 let cat = r.category;
                 if (cat === '오늘의집매출') cat = '오늘의집';
                 if (cat === '쿠팡윙' || cat === '쿠팡로켓배송') cat = '쿠팡(자동)';
                 return { ...r, category: cat };
               })
-            }));
+            };
+          });
+          setData(migrated);
+        } else {
+          const savedData = localStorage.getItem('surtax_market_data_es');
+          if (savedData) {
+            const rawData = JSON.parse(savedData);
+            const migrated = rawData.map((m: any) => {
+              const adEntries = m.purchases?.filter((p: any) => p.isAutoAd) || [];
+              const cleanPurchases = m.purchases?.filter((p: any) => !p.isAutoAd) || [];
+              return {
+                ...m,
+                purchases: cleanPurchases,
+                ads: m.ads || adEntries,
+                revenues: m.revenues.map((r: any) => {
+                  let cat = r.category;
+                  if (cat === '오늘의집매출') cat = '오늘의집';
+                  if (cat === '쿠팡윙' || cat === '쿠팡로켓배송') cat = '쿠팡(자동)';
+                  return { ...r, category: cat };
+                })
+              };
+            });
             setData(migrated);
           }
         }
@@ -223,14 +235,14 @@ export default function App() {
   const handleUpdateAd = (month: number, day: string, vendor: string, amt: number) => {
     setData(prev => prev.map(m => {
       if (m.month !== month) return m;
-      const otherPurchases = m.purchases.filter(p => !(p.date === day && p.vendor === vendor && p.isAutoAd));
-      if (amt === 0) return { ...m, purchases: otherPurchases };
-      return { ...m, purchases: [...otherPurchases, { id: `ad_${day}_${vendor}`, date: day, vendor, amount: amt, isAutoAd: true }] };
+      const otherAds = (m.ads || []).filter(p => !(p.date === day && p.vendor === vendor));
+      if (amt === 0) return { ...m, ads: otherAds };
+      return { ...m, ads: [...otherAds, { id: `ad_${day}_${vendor}`, date: day, vendor, amount: amt }] };
     }));
   };
 
-  const handleRemoveItem = (month: number, id: string, type: 'revenues' | 'purchases' | 'expenditures') => {
-    setData(prev => prev.map(m => m.month === month ? { ...m, [type]: m[type].filter((item: any) => item.id !== id) } : m));
+  const handleRemoveItem = (month: number, id: string, type: 'revenues' | 'purchases' | 'expenditures' | 'ads') => {
+    setData(prev => prev.map(m => m.month === month ? { ...m, [type]: (m[type] as any[]).filter((item: any) => item.id !== id) } : m));
   };
 
   const handleReset = () => {
@@ -399,7 +411,7 @@ export default function App() {
 
         {/* DAILY SUMMARY TABLES */}
         <DailyRevenueSummary revenues={currentMonthData.revenues} month={selectedMonth} onUpdateRevenue={(day, cat, amt) => handleUpdateRevenue(selectedMonth, day, cat, amt)} />
-        <DailyAdSummary purchases={currentMonthData.purchases} month={selectedMonth} onUpdateAd={(day, cat, amt) => handleUpdateAd(selectedMonth, day, cat, amt)} />
+        <DailyAdSummary ads={currentMonthData.ads || []} month={selectedMonth} onUpdateAd={(day, cat, amt) => handleUpdateAd(selectedMonth, day, cat, amt)} />
 
         {/* DETAILS CARDS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -540,13 +552,13 @@ function ItemList({ items, onRemove, color }: any) {
   );
 }
 
-function DailyAdSummary({ purchases, month, onUpdateAd }: any) {
+function DailyAdSummary({ ads, month, onUpdateAd }: any) {
   const daysInMonth = new Date(2026, month, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
   const categories = ["네이버광고", "쿠팡로켓광고", "쿠팡윙광고", "오늘의집광고"];
   const dailyData = days.map(day => {
-    const dayExps = purchases.filter((e: any) => e.date === day && e.isAutoAd);
-    const getAmt = (v: string) => dayExps.filter((e: any) => e.vendor === v).reduce((sum: number, e: any) => sum + e.amount, 0);
+    const dayAds = (ads || []).filter((e: any) => e.date === day);
+    const getAmt = (v: string) => dayAds.filter((e: any) => e.vendor === v).reduce((sum: number, e: any) => sum + e.amount, 0);
     const total = categories.reduce((sum, cat) => sum + getAmt(cat), 0);
     return { day, getAmt, total };
   });
