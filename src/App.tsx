@@ -162,20 +162,33 @@ export default function App() {
 
       // Emergency Scavenge from any localStorage key
       const scavengeData = () => {
+        const checkValue = (val: string) => {
+          try {
+            const parsed = JSON.parse(val);
+            if (!Array.isArray(parsed)) return false;
+            return parsed.some((m: any) => 
+              (m.revenues && m.revenues.length > 0) || 
+              (m.purchases && m.purchases.length > 0) || 
+              (m.expenses && m.expenses.length > 0) || 
+              (m.expenditures && m.expenditures.length > 0)
+            );
+          } catch (e) { return false; }
+        };
+
         // 1. Check current fixed key
         const current = localStorage.getItem(key);
-        if (current && JSON.parse(current).some((m:any) => m.revenues?.length > 0 || m.purchases?.length > 0)) return current;
+        if (current && checkValue(current)) return current;
         
         // 2. Check legacy key
         const legacy = localStorage.getItem('surtax_market_data');
-        if (legacy && JSON.parse(legacy).some((m:any) => m.revenues?.length > 0 || m.purchases?.length > 0)) return legacy;
+        if (legacy && checkValue(legacy)) return legacy;
 
-        // 3. Check any key starting with surtax_market_data_
+        // 3. Check any key containing 'surtax'
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
-          if (k?.startsWith('surtax_market_data_')) {
+          if (k && k.includes('surtax')) {
             const val = localStorage.getItem(k);
-            if (val && JSON.parse(val).some((m:any) => m.revenues?.length > 0 || m.purchases?.length > 0)) return val;
+            if (val && checkValue(val)) return val;
           }
         }
         return null;
@@ -540,6 +553,103 @@ export default function App() {
           month={selectedMonth} 
           onUpdateAd={(day, cat, amt) => handleUpdateAd(selectedMonth, day, cat, amt)} 
         />
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Revenue */}
+          <SectionCard title={`${selectedMonth}월 매출 상세`} total={currentMonthRevenue} color="blue" icon={<Calendar className="w-6 h-6 text-blue-400" />}>
+            <form onSubmit={(e) => { e.preventDefault(); handleAddRevenue(selectedMonth); }} className="space-y-4 mb-8 bg-blue-50/50 p-6 rounded-3xl border border-blue-100">
+              <div className="grid grid-cols-2 gap-4">
+                <DaySelect value={newRevDay} onChange={setNewRevDay} month={selectedMonth} />
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">스토어명</label>
+                  <select value={newRevCategory} onChange={(e) => setNewRevCategory(e.target.value as RevenueCategory)} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black">
+                    <option value="11번가">11번가</option>
+                    <option value="g마켓">g마켓</option>
+                    <option value="ns홈쇼핑">ns홈쇼핑</option>
+                    <option value="스마트스토어">스마트스토어</option>
+                    <option value="에이블리">에이블리</option>
+                    <option value="오늘의집">오늘의집</option>
+                    <option value="옥션">옥션</option>
+                    <option value="카페24">카페24</option>
+                    <option value="쿠팡(윙)">쿠팡(윙)</option>
+                    <option value="토스">토스</option>
+                    <option value="도매">도매</option>
+                    <option value="기타">기타</option>
+                  </select>
+                </div>
+              </div>
+              <AmountInput value={newRevAmount} onChange={setNewRevAmount} focusColor="blue" />
+              <button type="submit" disabled={!newRevAmount.trim()} className="w-full py-4 bg-blue-600 text-white rounded-xl font-black hover:bg-blue-700 disabled:opacity-50 transition">매출 추가</button>
+            </form>
+            <ItemList items={currentMonthData.revenues} onRemove={(id) => handleRemoveItem(selectedMonth, id, 'revenues')} color="blue" />
+          </SectionCard>
+
+          {/* Purchase */}
+          <SectionCard title={`${selectedMonth}월 매입 상세`} total={currentMonthPurchase} color="orange" icon={<ShoppingBag className="w-6 h-6 text-orange-500" />}>
+            <form onSubmit={(e) => { e.preventDefault(); handleAddPurchase(selectedMonth); }} className="space-y-4 mb-8 bg-orange-50/50 p-6 rounded-3xl border border-orange-100">
+              <div className="grid grid-cols-2 gap-4">
+                <DaySelect value={newPurDay} onChange={setNewPurDay} month={selectedMonth} />
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">매입처/품목</label>
+                  <input type="text" value={newPurVendor} onChange={(e) => setNewPurVendor(e.target.value)} placeholder="도매처/물건명" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black" />
+                </div>
+              </div>
+              <AmountInput value={newPurAmount} onChange={setNewPurAmount} focusColor="orange" />
+              <button type="submit" disabled={!newPurVendor.trim() || !newPurAmount.trim()} className="w-full py-4 bg-orange-500 text-white rounded-xl font-black hover:bg-orange-600 disabled:opacity-50 transition">매입 추가</button>
+            </form>
+            <ItemList items={currentMonthData.purchases.filter(p => !p.isAutoAd)} onRemove={(id) => handleRemoveItem(selectedMonth, id, 'purchases')} color="orange" />
+          </SectionCard>
+
+          {/* Expenditure */}
+          <SectionCard title={`${selectedMonth}월 지출 상세`} total={currentMonthExpenditure} color="red" icon={<TrendingDown className="w-6 h-6 text-red-500" />}>
+            <form onSubmit={(e) => { e.preventDefault(); handleAddExpenditure(selectedMonth); }} className="space-y-4 mb-8 bg-red-50/50 p-6 rounded-3xl border border-red-100">
+              <div className="grid grid-cols-2 gap-4">
+                <DaySelect value={newExpDay} onChange={setNewExpDay} month={selectedMonth} />
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">지출항목</label>
+                  <input type="text" value={newExpVendor} onChange={(e) => setNewExpVendor(e.target.value)} placeholder="항목 직접 입력" className="text-slate-900 w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black" />
+                </div>
+              </div>
+              <AmountInput value={newExpAmount} onChange={setNewExpAmount} focusColor="red" />
+              <button type="submit" disabled={!newExpVendor.trim() || !newExpAmount.trim()} className="w-full py-4 bg-red-500 text-white rounded-xl font-black hover:bg-red-600 disabled:opacity-50 transition">지출 추가</button>
+            </form>
+            <ItemList items={currentMonthData.expenditures} onRemove={(id) => handleRemoveItem(selectedMonth, id, 'expenditures')} color="red" />
+          </SectionCard>
+        </div>
+
+        {/* Data Recovery Explorer */}
+        <div className="mt-20 p-8 bg-slate-100 rounded-[2rem] border border-slate-200">
+          <h3 className="text-sm font-black text-slate-500 mb-4 flex items-center gap-2">
+            <KeyRound className="w-4 h-4" /> 데이터 저장소 탐색기 (복구용)
+          </h3>
+          <div className="space-y-2">
+            {Object.keys(localStorage).filter(k => k.includes('surtax')).map(k => {
+              const val = localStorage.getItem(k) || "";
+              const size = (val.length / 1024).toFixed(1);
+              return (
+                <div key={k} className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-black text-slate-900">{k}</span>
+                    <span className="text-[10px] text-slate-400">크기: {size}KB</span>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      if (window.confirm(`${k}의 데이터를 현재 화면으로 불러오시겠습니까?`)) {
+                        const parsed = JSON.parse(val);
+                        setData(migrateData(parsed));
+                        setHasLoaded(true);
+                        alert("데이터를 불러왔습니다. 상단의 순익과 리스트를 확인해 주세요.");
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-blue-600 text-white text-[10px] font-black rounded-lg hover:bg-blue-700"
+                  >
+                    이 데이터 불러오기
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Revenue */}
