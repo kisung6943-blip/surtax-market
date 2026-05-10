@@ -20,6 +20,7 @@ type Entry = {
   vendor: string;
   amount: number;
   date: string;
+  isAutoAd?: boolean;
 };
 
 type MonthData = {
@@ -84,13 +85,25 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'done' | 'error'>('idle');
 
   // Helper: migrate old data format
-  const migrateData = (parsed: any[]) => parsed.map((m: any) => ({
-    ...m,
-    revenues: m.revenues || [],
-    purchases: m.purchases || m.expenses || [],
-    expenditures: m.expenditures || [],
-    expenses: undefined 
-  }));
+  const migrateData = (parsed: any[]) => parsed.map((m: any) => {
+    const purchases = Array.isArray(m.purchases) ? m.purchases : (Array.isArray(m.expenses) ? m.expenses : []);
+    
+    // One-time migration for ad entries to set isAutoAd flag
+    const fixedPurchases = purchases.map((p: any) => {
+      if (AD_VENDORS.includes(p.vendor) && p.isAutoAd === undefined) {
+        return { ...p, isAutoAd: true };
+      }
+      return p;
+    });
+
+    return {
+      ...m,
+      revenues: m.revenues || [],
+      purchases: fixedPurchases,
+      expenditures: m.expenditures || [],
+      expenses: undefined 
+    };
+  });
 
   // Helper: Save to Supabase
   const saveToSupabase = async (key: string, value: any) => {
@@ -347,7 +360,8 @@ export default function App() {
               id: Date.now().toString() + Math.random().toString(), 
               vendor: category, 
               amount, 
-              date: day 
+              date: day,
+              isAutoAd: true
             }].sort((a, b) => a.date.localeCompare(b.date) || a.vendor.localeCompare(b.vendor))
           };
         } else {
@@ -383,9 +397,12 @@ export default function App() {
 
   // Calculations
   const calculateTotal = (items: any[]) => items?.reduce((sum, r) => sum + r.amount, 0) || 0;
+  const calculateTotalExcludingAds = (items: any[]) => items?.filter(item => !item.isAutoAd).reduce((sum, r) => sum + r.amount, 0) || 0;
+  const calculateOnlyAds = (items: any[]) => items?.filter(item => item.isAutoAd).reduce((sum, r) => sum + r.amount, 0) || 0;
 
   const yearlyRevenue = useMemo(() => data.reduce((sum, m) => sum + calculateTotal(m.revenues), 0), [data]);
-  const yearlyPurchase = useMemo(() => data.reduce((sum, m) => sum + calculateTotal(m.purchases), 0), [data]);
+  const yearlyPurchase = useMemo(() => data.reduce((sum, m) => sum + calculateTotalExcludingAds(m.purchases), 0), [data]);
+  const yearlyAdExpense = useMemo(() => data.reduce((sum, m) => sum + calculateOnlyAds(m.purchases), 0), [data]);
   const yearlyExpenditure = useMemo(() => data.reduce((sum, m) => sum + calculateTotal(m.expenditures), 0), [data]);
   const yearlyNetProfit = yearlyRevenue - (yearlyPurchase + yearlyExpenditure);
   const yearlyPurchaseRatio = yearlyRevenue > 0 ? ((yearlyPurchase / yearlyRevenue) * 100).toFixed(1) : "0.0";
@@ -393,13 +410,13 @@ export default function App() {
   const chartData = useMemo(() => data.map(m => ({
     month: m.month,
     revenue: calculateTotal(m.revenues),
-    purchase: calculateTotal(m.purchases),
+    purchase: calculateTotalExcludingAds(m.purchases),
     expenditure: calculateTotal(m.expenditures),
   })), [data]);
 
   const currentMonthData = data.find(d => d.month === selectedMonth)!;
   const currentMonthRevenue = calculateTotal(currentMonthData.revenues);
-  const currentMonthPurchase = calculateTotal(currentMonthData.purchases);
+  const currentMonthPurchase = calculateTotalExcludingAds(currentMonthData.purchases);
   const currentMonthExpenditure = calculateTotal(currentMonthData.expenditures);
 
   if (!isAuthenticated) {
@@ -544,7 +561,7 @@ export default function App() {
               <AmountInput value={newPurAmount} onChange={setNewPurAmount} focusColor="orange" />
               <button type="submit" disabled={!newPurVendor.trim() || !newPurAmount.trim()} className="w-full py-4 bg-orange-500 text-white rounded-xl font-black hover:bg-orange-600 disabled:opacity-50 transition">매입 추가</button>
             </form>
-            <ItemList items={currentMonthData.purchases} onRemove={(id) => handleRemoveItem(selectedMonth, id, 'purchases')} color="orange" />
+            <ItemList items={currentMonthData.purchases.filter(p => !p.isAutoAd)} onRemove={(id) => handleRemoveItem(selectedMonth, id, 'purchases')} color="orange" />
           </SectionCard>
 
           {/* Expenditure */}
@@ -638,6 +655,8 @@ function ItemList({ items, onRemove, color }: any) {
   );
 }
 
+const AD_VENDORS = ["네이버광고비", "쿠팡로켓광고", "쿠팡윙광고", "오늘의집 광고비"];
+
 const adCategories = ["네이버광고비", "쿠팡로켓광고", "쿠팡윙광고", "오늘의집 광고비"];
 
 function DailyAdSummary({ purchases, month, onUpdateAd }: { purchases: Entry[], month: number, onUpdateAd: (day: string, cat: string, amt: number) => void }) {
@@ -645,7 +664,7 @@ function DailyAdSummary({ purchases, month, onUpdateAd }: { purchases: Entry[], 
   const days = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
 
   const dailyData = days.map(day => {
-    const dayExps = purchases.filter(e => e.date === day);
+    const dayExps = purchases.filter(e => e.date === day && e.isAutoAd);
     const naver = dayExps.filter(e => e.vendor === "네이버광고비").reduce((sum, e) => sum + e.amount, 0);
     const coupangRocket = dayExps.filter(e => e.vendor === "쿠팡로켓광고").reduce((sum, e) => sum + e.amount, 0);
     const coupangWing = dayExps.filter(e => e.vendor === "쿠팡윙광고").reduce((sum, e) => sum + e.amount, 0);
