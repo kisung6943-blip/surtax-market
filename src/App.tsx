@@ -504,11 +504,12 @@ function DaySelect({ value, onChange, month }: any) {
 
 function AmountInput({ value, onChange, focusColor }: any) {
   const rings: any = { blue: "focus:ring-blue-500", orange: "focus:ring-orange-500", red: "focus:ring-red-500" };
+  const displayValue = value === "-" ? "-" : (value ? parseInt(value.replace(/[^0-9-]/g, "")).toLocaleString() : "");
   return (
     <div className="space-y-1.5">
       <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">금액</label>
       <div className="relative">
-        <input type="text" value={value ? parseInt(value.replace(/[^0-9-]/g, "")).toLocaleString() : ""} onChange={(e) => onChange(e.target.value.replace(/[^0-9-]/g, ""))} placeholder="0" className={`w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black text-right pr-10 focus:ring-2 outline-none ${rings[focusColor]}`} />
+        <input type="text" value={displayValue} onChange={(e) => onChange(e.target.value.replace(/[^0-9-]/g, ""))} placeholder="0" className={`w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-black text-right pr-10 focus:ring-2 outline-none ${rings[focusColor]}`} />
         <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-slate-400 text-sm">원</span>
       </div>
     </div>
