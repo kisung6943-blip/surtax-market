@@ -20,6 +20,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from './lib/supabase';
 
 // --- Types ---
 type RevenueCategory = '스마트스토어' | '쿠팡윙' | '쿠팡로켓배송' | '오늘의집매출' | '옥션' | 'G마켓' | '11번가' | '도매' | '현금입금' | '기타';
@@ -64,6 +65,7 @@ export default function App() {
   
   const [data, setData] = useState<MonthData[]>(getInitialData());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'done' | 'error'>('idle');
 
   // Form states
   const [newRevDay, setNewRevDay] = useState(new Date().getDate().toString().padStart(2, '0'));
@@ -85,20 +87,53 @@ export default function App() {
       setIsSettingPassword(true);
     }
 
-    const savedData = localStorage.getItem('surtax_market_data_es');
-    if (savedData) {
+    const fetchData = async () => {
       try {
-        setData(JSON.parse(savedData));
+        const { data: dbData, error } = await supabase
+          .from('surtax_market_data')
+          .select('month_data')
+          .eq('id', 'market_ledger_es')
+          .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+
+        if (dbData) {
+          setData(dbData.month_data);
+        } else {
+          const savedData = localStorage.getItem('surtax_market_data_es');
+          if (savedData) setData(JSON.parse(savedData));
+        }
       } catch (e) {
-        console.error("Failed to load data", e);
+        console.error("Supabase load failed", e);
+        const savedData = localStorage.getItem('surtax_market_data_es');
+        if (savedData) setData(JSON.parse(savedData));
       }
-    }
+    };
+
+    fetchData();
   }, []);
 
   useEffect(() => {
-    if (data.length > 0) {
-      localStorage.setItem('surtax_market_data_es', JSON.stringify(data));
-    }
+    if (data.length === 0) return;
+    
+    localStorage.setItem('surtax_market_data_es', JSON.stringify(data));
+
+    const timeout = setTimeout(async () => {
+      setSyncStatus('syncing');
+      try {
+        const { error } = await supabase
+          .from('surtax_market_data')
+          .upsert({ id: 'market_ledger_es', month_data: data, updated_at: new Date().toISOString() });
+        
+        if (error) throw error;
+        setSyncStatus('done');
+      } catch (e) {
+        console.error("Supabase save failed", e);
+        setSyncStatus('error');
+      }
+    }, 1000);
+
+    return () => clearTimeout(timeout);
   }, [data]);
 
   // Handlers
@@ -232,6 +267,17 @@ export default function App() {
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-black tracking-tight">마켓 통합 회계 장부</h1>
             <div className="bg-white border border-slate-200 rounded-2xl px-4 py-2 shadow-sm font-black text-blue-600">(ES)</div>
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black border transition-all ${
+              syncStatus === 'syncing' ? 'bg-blue-50 text-blue-500 border-blue-100 animate-pulse' :
+              syncStatus === 'done' ? 'bg-emerald-50 text-emerald-500 border-emerald-100' :
+              syncStatus === 'error' ? 'bg-red-50 text-red-500 border-red-100' :
+              'bg-slate-50 text-slate-400 border-slate-100'
+            }`}>
+              <Download className={`w-3 h-3 ${syncStatus === 'syncing' ? 'animate-bounce' : ''}`} />
+              {syncStatus === 'syncing' ? '클라우드 동기화 중...' : 
+               syncStatus === 'done' ? '클라우드 동기화 완료' :
+               syncStatus === 'error' ? '동기화 오류' : '오프라인'}
+            </div>
             <button onClick={handleLogout} className="p-2 text-slate-300 hover:text-blue-500"><Unlock className="w-5 h-5" /></button>
           </div>
           <button onClick={handleReset} className="px-4 py-2 text-xs font-black text-red-500 hover:bg-red-50 rounded-lg border border-red-100 flex items-center gap-2">
