@@ -101,13 +101,21 @@ export default function App() {
 
           // Migration: Map old categories to new ones + move ads
           const migrated = rawData.map((m: any) => {
-            const adEntries = m.purchases?.filter((p: any) => p.isAutoAd) || [];
-            const cleanPurchases = m.purchases?.filter((p: any) => !p.isAutoAd) || [];
+            const adEntriesFromPurchases = (m.purchases || []).filter((p: any) => p.isAutoAd);
+            const cleanPurchases = (m.purchases || []).filter((p: any) => !p.isAutoAd);
+            // Combine existing ads with those found in purchases, ensuring no duplicates if migration runs twice
+            const combinedAds = [...(m.ads || [])];
+            adEntriesFromPurchases.forEach((ae: any) => {
+              if (!combinedAds.find(x => x.id === ae.id)) {
+                combinedAds.push({ ...ae, isAutoAd: undefined }); // Remove the flag as it's no longer needed
+              }
+            });
+
             return {
               ...m,
               purchases: cleanPurchases,
-              ads: m.ads || adEntries,
-              revenues: m.revenues.map((r: any) => {
+              ads: combinedAds,
+              revenues: (m.revenues || []).map((r: any) => {
                 let cat = r.category;
                 if (cat === '오늘의집매출') cat = '오늘의집';
                 if (cat === '쿠팡윙' || cat === '쿠팡로켓배송') cat = '쿠팡(자동)';
@@ -121,13 +129,20 @@ export default function App() {
           if (savedData) {
             const rawData = JSON.parse(savedData);
             const migrated = rawData.map((m: any) => {
-              const adEntries = m.purchases?.filter((p: any) => p.isAutoAd) || [];
-              const cleanPurchases = m.purchases?.filter((p: any) => !p.isAutoAd) || [];
+              const adEntriesFromPurchases = (m.purchases || []).filter((p: any) => p.isAutoAd);
+              const cleanPurchases = (m.purchases || []).filter((p: any) => !p.isAutoAd);
+              const combinedAds = [...(m.ads || [])];
+              adEntriesFromPurchases.forEach((ae: any) => {
+                if (!combinedAds.find(x => x.id === ae.id)) {
+                  combinedAds.push({ ...ae, isAutoAd: undefined });
+                }
+              });
+
               return {
                 ...m,
                 purchases: cleanPurchases,
-                ads: m.ads || adEntries,
-                revenues: m.revenues.map((r: any) => {
+                ads: combinedAds,
+                revenues: (m.revenues || []).map((r: any) => {
                   let cat = r.category;
                   if (cat === '오늘의집매출') cat = '오늘의집';
                   if (cat === '쿠팡윙' || cat === '쿠팡로켓배송') cat = '쿠팡(자동)';
