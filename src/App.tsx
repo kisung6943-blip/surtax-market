@@ -52,10 +52,9 @@ export default function App() {
   const [savedPassword, setSavedPassword] = useState<string | null>(null);
   const [isSettingPassword, setIsSettingPassword] = useState(false);
 
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [activeCompanyId, setActiveCompanyId] = useState<string>("");
   const [data, setData] = useState<MonthData[]>(getInitialData());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const activeCompanyId = "es";
 
   // Initial Authentication Check
   useEffect(() => {
@@ -131,49 +130,14 @@ export default function App() {
     }
   };
 
-  // Initial Load (Companies and Data) - Supabase first, fallback to localStorage
+  // Initial Load (Authentication only, multi-company removed)
   useEffect(() => {
     const init = async () => {
       setSyncStatus('syncing');
-      try {
-        // 1. Load companies
-        let loadedCompanies: Company[] = [];
-        const cloudCompanies = await loadFromSupabase('surtax_market_companies');
-        if (cloudCompanies && Array.isArray(cloudCompanies) && cloudCompanies.length > 0) {
-          loadedCompanies = cloudCompanies;
-        } else {
-          const savedCompanies = localStorage.getItem("surtax_market_companies");
-          if (savedCompanies) loadedCompanies = JSON.parse(savedCompanies);
-        }
-
-        if (loadedCompanies.length === 0) {
-          const defaultId = "company_" + Date.now();
-          loadedCompanies = [{ id: defaultId, name: "신규 업체" }];
-        }
-
-        setCompanies(loadedCompanies);
-        localStorage.setItem("surtax_market_companies", JSON.stringify(loadedCompanies));
-
-        // 2. Load active company ID
-        const savedActiveId = localStorage.getItem("surtax_market_active_id");
-        const activeId = savedActiveId && loadedCompanies.find(c => c.id === savedActiveId) ? savedActiveId : loadedCompanies[0].id;
-        setActiveCompanyId(activeId);
-        setSyncStatus('done');
-      } catch (e) {
-        console.error("Initial load failed", e);
-        setSyncStatus('error');
-      }
+      setSyncStatus('done');
     };
     init();
   }, []);
-
-  // Save Companies List (localStorage + Supabase)
-  useEffect(() => {
-    if (companies.length > 0) {
-      localStorage.setItem("surtax_market_companies", JSON.stringify(companies));
-      saveToSupabase('surtax_market_companies', companies);
-    }
-  }, [companies]);
 
   // Load Data for Active Company (Supabase first, fallback to localStorage)
   useEffect(() => {
@@ -183,7 +147,7 @@ export default function App() {
 
     const loadData = async () => {
       setSyncStatus('syncing');
-      const key = `surtax_market_data_${activeCompanyId}`;
+      const key = `surtax_market_data_es`;
 
       // Try Supabase first
       const cloudData = await loadFromSupabase(key);
@@ -191,18 +155,39 @@ export default function App() {
         const migrated = migrateData(cloudData);
         setData(migrated);
         localStorage.setItem(key, JSON.stringify(migrated));
+        setHasLoaded(true);
         setSyncStatus('done');
         return;
       }
 
-      // Fallback to localStorage
-      const savedData = localStorage.getItem(key);
-      if (savedData) {
+      // Emergency Scavenge from any localStorage key
+      const scavengeData = () => {
+        // 1. Check current fixed key
+        const current = localStorage.getItem(key);
+        if (current && JSON.parse(current).some((m:any) => m.revenues?.length > 0 || m.purchases?.length > 0)) return current;
+        
+        // 2. Check legacy key
+        const legacy = localStorage.getItem('surtax_market_data');
+        if (legacy && JSON.parse(legacy).some((m:any) => m.revenues?.length > 0 || m.purchases?.length > 0)) return legacy;
+
+        // 3. Check any key starting with surtax_market_data_
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k?.startsWith('surtax_market_data_')) {
+            const val = localStorage.getItem(k);
+            if (val && JSON.parse(val).some((m:any) => m.revenues?.length > 0 || m.purchases?.length > 0)) return val;
+          }
+        }
+        return null;
+      };
+
+      const foundData = scavengeData();
+      if (foundData) {
         try {
-          const parsed = JSON.parse(savedData);
+          const parsed = JSON.parse(foundData);
           const migrated = migrateData(parsed);
           setData(migrated);
-          // Upload local data to Supabase (first-time sync)
+          localStorage.setItem(key, JSON.stringify(migrated));
           saveToSupabase(key, migrated);
         } catch (e) {
           setData(getInitialData());
@@ -225,16 +210,6 @@ export default function App() {
     }
   }, [data, activeCompanyId, hasLoaded]);
 
-  const handleAddCompany = () => {
-    const name = window.prompt("새 업체 이름을 입력하세요:");
-    if (name && name.trim()) {
-      const newId = "company_" + Date.now();
-      const newCompany = { id: newId, name: name.trim() };
-      setCompanies(prev => [...prev, newCompany]);
-      setActiveCompanyId(newId);
-    }
-  };
-
   const handleReset = () => {
     if (window.confirm("현재 업체의 모든 데이터를 초기화하시겠습니까?")) {
       setData(getInitialData());
@@ -243,39 +218,7 @@ export default function App() {
   };
 
   const findMissingData = () => {
-    const keys = Object.keys(localStorage);
-    const dataKeys = keys.filter(k => k.startsWith('surtax_market_data_'));
-    const legacyKey = 'surtax_market_data';
-    
-    let found: Company[] = [];
-    const legacyData = localStorage.getItem(legacyKey);
-    if (legacyData && legacyData !== "[]") {
-      found.push({ id: 'legacy', name: '이전 통합 데이터' });
-    }
-    
-    dataKeys.forEach(k => {
-      const id = k.replace('surtax_market_data_', '');
-      if (!companies.find(c => c.id === id)) {
-        found.push({ id, name: `복구된 업체 (${id.substring(0, 6)})` });
-      }
-    });
-    
-    if (found.length > 0) {
-      if (window.confirm(`${found.length}개의 기존 데이터를 찾았습니다. 업체 리스트에 추가하여 확인하시겠습니까?`)) {
-        setCompanies(prev => {
-          const newCompanies = [...prev];
-          found.forEach(f => {
-            if (!newCompanies.find(c => c.id === f.id)) {
-              newCompanies.push(f);
-            }
-          });
-          return newCompanies;
-        });
-        alert("업체 리스트에 추가되었습니다. 상단 선택 메뉴에서 복구된 업체를 선택해 보세요.");
-      }
-    } else {
-      alert("추가로 발견된 데이터가 없습니다. 이미 리스트에 있거나 데이터가 비어있을 수 있습니다.");
-    }
+    alert("현재 비상 복구 로직이 작동 중입니다. 새로고침 후에도 데이터가 없다면 저장소 자체가 비어있는 상태일 수 있습니다.");
   };
 
   const handleSetPassword = () => {
@@ -499,19 +442,9 @@ export default function App() {
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-4">
               <h1 className="text-3xl font-black tracking-tight text-slate-900 whitespace-nowrap">마켓 통합 회계 장부</h1>
-              <select 
-                value={activeCompanyId} 
-                onChange={(e) => {
-                  setHasLoaded(false);
-                  setActiveCompanyId(e.target.value);
-                }} 
-                className="bg-white border border-slate-200 rounded-2xl px-4 py-2 text-sm font-black outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
-              >
-                {companies.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-              <button onClick={handleAddCompany} className="p-2 text-slate-300 hover:text-blue-500 transition-colors"><Plus className="w-5 h-5" /></button>
+              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-2xl px-4 py-2 shadow-sm">
+                <span className="text-lg font-black text-blue-600">(ES)</span>
+              </div>
               <button onClick={handleLogout} className="p-2 text-slate-300 hover:text-blue-500 transition-colors"><Unlock className="w-5 h-5" /></button>
               <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black ${
                 syncStatus === 'syncing' ? 'bg-yellow-50 text-yellow-600 border border-yellow-200' :
