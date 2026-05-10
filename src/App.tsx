@@ -439,6 +439,46 @@ export default function App() {
           </div>
         </header>
 
+        {/* Data Recovery Explorer - MOVED TO TOP */}
+        <div className="p-8 bg-blue-50 rounded-[2rem] border-2 border-blue-200 shadow-lg shadow-blue-500/5">
+          <h3 className="text-sm font-black text-blue-600 mb-4 flex items-center gap-2">
+            <KeyRound className="w-4 h-4" /> [긴급] 모든 저장 데이터 탐색기 (자료를 여기서 찾으세요)
+          </h3>
+          <p className="text-[10px] font-bold text-blue-400 mb-4">리스트에서 크기가 0이 아니거나 자료가 들어있을 것 같은 항목의 [데이터 불러오기] 버튼을 눌러보세요.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {Object.keys(localStorage).map(k => {
+              const val = localStorage.getItem(k) || "";
+              const size = (val.length / 1024).toFixed(1);
+              if (size === "0.0" && val.length < 5) return null; // Skip empty stuff
+              return (
+                <div key={k} className="flex items-center justify-between bg-white p-4 rounded-xl border border-blue-100 shadow-sm">
+                  <div className="flex flex-col overflow-hidden mr-4">
+                    <span className="text-xs font-black text-slate-900 truncate">{k}</span>
+                    <span className="text-[10px] text-slate-400 font-bold">크기: {size}KB</span>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      if (window.confirm(`${k}의 데이터를 불러오시겠습니까?`)) {
+                        try {
+                          const parsed = JSON.parse(val);
+                          setData(migrateData(parsed));
+                          setHasLoaded(true);
+                          alert("데이터를 성공적으로 불러왔습니다. 화면 하단의 매출/매입 내역을 확인해 주세요!");
+                        } catch(e) {
+                          alert("이 항목은 데이터 형식이 올바르지 않습니다.");
+                        }
+                      }
+                    }}
+                    className="shrink-0 px-3 py-1.5 bg-blue-600 text-white text-[10px] font-black rounded-lg hover:bg-blue-700 shadow-md active:scale-95 transition-all"
+                  >
+                    데이터 불러오기
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           <SummaryCard icon={<TrendingUp />} color="blue" label="연간 총 매출액" value={formatCurrency(yearlyRevenue)} />
           <SummaryCard icon={<ShoppingBag />} color="orange" label="연간 총 매입액" value={formatCurrency(yearlyPurchase)} subtext={`매출대비 ${yearlyPurchaseRatio}%`} />
@@ -576,39 +616,6 @@ export default function App() {
           </SectionCard>
         </div>
 
-        {/* Data Recovery Explorer */}
-        <div className="mt-20 p-8 bg-slate-100 rounded-[2rem] border border-slate-200">
-          <h3 className="text-sm font-black text-slate-500 mb-4 flex items-center gap-2">
-            <KeyRound className="w-4 h-4" /> 데이터 저장소 탐색기 (복구용)
-          </h3>
-          <div className="space-y-2">
-            {Object.keys(localStorage).filter(k => k.includes('surtax')).map(k => {
-              const val = localStorage.getItem(k) || "";
-              const size = (val.length / 1024).toFixed(1);
-              return (
-                <div key={k} className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <div className="flex flex-col">
-                    <span className="text-xs font-black text-slate-900">{k}</span>
-                    <span className="text-[10px] text-slate-400">크기: {size}KB</span>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      if (window.confirm(`${k}의 데이터를 현재 화면으로 불러오시겠습니까?`)) {
-                        const parsed = JSON.parse(val);
-                        setData(migrateData(parsed));
-                        setHasLoaded(true);
-                        alert("데이터를 불러왔습니다. 상단의 순익과 리스트를 확인해 주세요.");
-                      }
-                    }}
-                    className="px-3 py-1.5 bg-blue-600 text-white text-[10px] font-black rounded-lg hover:bg-blue-700"
-                  >
-                    이 데이터 불러오기
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Revenue */}
