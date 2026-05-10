@@ -534,16 +534,16 @@ function DailyAdSummary({ purchases, month, onUpdateAd }: any) {
       <CardContent className="p-0">
         <div className="max-h-[400px] overflow-y-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 sticky top-0 font-black text-[10px] text-slate-400 uppercase tracking-widest">
-              <tr><th className="px-6 py-4">날짜</th>{categories.map(cat => <th key={cat} className="px-6 py-4">{cat}</th>)}<th className="px-6 py-4 text-right">총액</th></tr>
+            <thead className="bg-slate-100 sticky top-0 font-black text-xs text-slate-900 uppercase tracking-tight border-b border-slate-200">
+              <tr><th className="px-6 py-5">날짜</th>{categories.map(cat => <th key={cat} className="px-6 py-5 text-purple-700">{cat}</th>)}<th className="px-6 py-5 text-right bg-slate-900 text-white">총액</th></tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {dailyData.map(d => (
                 <tr key={d.day} className={`hover:bg-slate-50 ${d.total > 0 ? "bg-white" : "bg-slate-50/20 opacity-60"}`}>
-                  <td className="px-6 py-4 font-black">{d.day}일</td>
+                  <td className="px-6 py-4 font-black text-base text-slate-900">{d.day}일</td>
                   {categories.map(cat => (
                     <td key={cat} className="px-2 py-2">
-                      <input type="text" value={d.getAmt(cat) ? d.getAmt(cat).toLocaleString() : ""} onChange={(e) => onUpdateAd(d.day, cat, parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)} className="w-full bg-transparent border-none text-center font-black text-blue-600 outline-none" placeholder="0" />
+                      <input type="text" value={d.getAmt(cat) ? d.getAmt(cat).toLocaleString() : ""} onChange={(e) => onUpdateAd(d.day, cat, parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)} className="w-full bg-transparent border-none text-center font-black text-base text-blue-600 outline-none" placeholder="0" />
                     </td>
                   ))}
                   <td className="px-6 py-4 font-black text-right text-slate-900">{d.total.toLocaleString()}원</td>
@@ -574,16 +574,16 @@ function DailyRevenueSummary({ revenues, month, onUpdateRevenue }: any) {
       <CardContent className="p-0">
         <div className="max-h-[400px] overflow-x-auto overflow-y-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 sticky top-0 font-black text-[10px] text-slate-400 uppercase tracking-widest">
-              <tr><th className="px-4 py-4 min-w-[60px]">날짜</th>{revCategories.map(cat => <th key={cat} className="px-2 py-4 min-w-[100px] text-center">{cat}</th>)}<th className="px-4 py-4 text-right">총액</th></tr>
+            <thead className="bg-slate-100 sticky top-0 font-black text-xs text-slate-900 uppercase tracking-tight border-b border-slate-200">
+              <tr><th className="px-4 py-5 min-w-[70px]">날짜</th>{revCategories.map(cat => <th key={cat} className="px-2 py-5 min-w-[110px] text-center text-blue-700">{cat}</th>)}<th className="px-4 py-5 text-right bg-slate-900 text-white">총액</th></tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {dailyData.map(d => (
                 <tr key={d.day} className={`hover:bg-slate-50 ${d.total > 0 ? "bg-white" : "bg-slate-50/20 opacity-60"}`}>
-                  <td className="px-4 py-4 font-black">{d.day}일</td>
+                  <td className="px-4 py-4 font-black text-base text-slate-900">{d.day}일</td>
                   {revCategories.map(cat => (
                     <td key={cat} className="px-1 py-2">
-                      <input type="text" value={d.getAmt(cat) ? d.getAmt(cat).toLocaleString() : ""} onChange={(e) => onUpdateRevenue(d.day, cat, parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)} className="w-full bg-transparent border-none text-center font-black text-blue-500 outline-none" placeholder="0" />
+                      <input type="text" value={d.getAmt(cat) ? d.getAmt(cat).toLocaleString() : ""} onChange={(e) => onUpdateRevenue(d.day, cat, parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)} className="w-full bg-transparent border-none text-center font-black text-base text-blue-600 outline-none" placeholder="0" />
                     </td>
                   ))}
                   <td className="px-4 py-4 font-black text-right text-slate-900">{d.total.toLocaleString()}원</td>
