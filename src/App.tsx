@@ -1,4 +1,4 @@
-// Dashboard enhancements update - v1.0.1
+// DASHBOARD UPDATE TEST 2
 import { DEPLOY_TRIGGER } from './trigger';
 console.log('Deploy Trigger:', DEPLOY_TRIGGER);
 
