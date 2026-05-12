@@ -16,7 +16,8 @@ import {
   ChevronRight,
   Download,
   CheckCircle2,
-  Clock
+  Clock,
+  DollarSign
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { 
