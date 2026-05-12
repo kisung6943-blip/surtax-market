@@ -1,4 +1,3 @@
-// DASHBOARD UPDATE TEST 2
 import { DEPLOY_TRIGGER } from './trigger';
 console.log('Deploy Trigger:', DEPLOY_TRIGGER);
 
@@ -277,13 +276,6 @@ export default function App() {
       setData(getInitialData());
     }
   };
-
-  // Stats
-  const currentMonthData = data.find(m => m.month === selectedMonth) || getInitialData()[0];
-  const currentMonthRevenue = currentMonthData.revenues.reduce((sum, r) => sum + r.amount, 0);
-  const currentMonthPurchase = currentMonthData.purchases.reduce((sum, p) => sum + p.amount, 0);
-  const currentMonthExpenditure = currentMonthData.expenditures.reduce((sum, e) => sum + e.amount, 0);
-  const currentMonthProfit = currentMonthRevenue - currentMonthPurchase - currentMonthExpenditure;
 
   const yearlyRevenue = data.reduce((sum, m) => sum + m.revenues.reduce((s, r) => s + r.amount, 0), 0);
   const yearlyPurchase = data.reduce((sum, m) => sum + m.purchases.reduce((s, p) => s + p.amount, 0), 0);
