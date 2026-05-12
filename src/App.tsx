@@ -401,6 +401,9 @@ export default function App() {
   const currentMonthRevenue = calculateTotal(currentMonthData.revenues);
   const currentMonthPurchase = calculateTotal(currentMonthData.purchases);
   const currentMonthExpenditure = calculateTotal(currentMonthData.expenditures);
+  const currentMonthNetProfit = currentMonthRevenue - (currentMonthPurchase + currentMonthExpenditure);
+  const currentMonthPurchaseRatio = currentMonthRevenue > 0 ? ((currentMonthPurchase / currentMonthRevenue) * 100).toFixed(1) : "0.0";
+  const currentMonthProfitRatio = currentMonthRevenue > 0 ? ((currentMonthNetProfit / currentMonthRevenue) * 100).toFixed(1) : "0.0";
 
   if (!isAuthenticated) {
     return (
@@ -455,12 +458,13 @@ export default function App() {
           <button onClick={handleReset} className="px-4 py-2 text-xs font-black text-red-500 hover:bg-red-50 rounded-lg border border-red-100 transition-colors flex items-center gap-2"><Trash2 className="w-3 h-3" /> 데이터 초기화</button>
         </header>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
           <SummaryCard icon={<TrendingUp />} color="blue" label="연간 총 매출액" value={formatCurrency(yearlyRevenue)} />
           <SummaryCard icon={<ShoppingBag />} color="orange" label="연간 총 매입액" value={formatCurrency(yearlyPurchase)} subtext={`매출대비 ${yearlyPurchaseRatio}%`} />
           <SummaryCard icon={<TrendingDown />} color="red" label="연간 총 지출액" value={formatCurrency(yearlyExpenditure)} />
           <SummaryCard icon={<DollarSign />} color="green" label="연간 순이익" value={formatCurrency(yearlyNetProfit)} />
-          <SummaryCard icon={<Percent />} color="purple" label="연간 매입 비율" value={`${yearlyPurchaseRatio}%`} subtext="지출 제외" />
+          <SummaryCard icon={<Percent />} color="purple" label="연간 매입율" value={`${yearlyPurchaseRatio}%`} subtext="매출 대비 매입" />
+          <SummaryCard icon={<Percent />} color="indigo" label="연간 수익률" value={`${(yearlyRevenue > 0 ? (yearlyNetProfit / yearlyRevenue * 100).toFixed(1) : "0.0")}%`} subtext="매출 대비 순익" />
         </div>
 
         <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem]">
@@ -487,6 +491,15 @@ export default function App() {
           {data.map(m => (
             <button key={m.month} onClick={() => setSelectedMonth(m.month)} className={`px-6 py-3 rounded-2xl whitespace-nowrap text-sm font-black transition snap-start border-2 ${selectedMonth === m.month ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/20' : 'bg-white text-slate-700 hover:bg-slate-100 border-white shadow-sm'}`}>{m.month}월</button>
           ))}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+          <SummaryCard icon={<TrendingUp />} color="blue" label={`${selectedMonth}월 매출`} value={formatCurrency(currentMonthRevenue)} />
+          <SummaryCard icon={<ShoppingBag />} color="orange" label={`${selectedMonth}월 매입`} value={formatCurrency(currentMonthPurchase)} />
+          <SummaryCard icon={<TrendingDown />} color="red" label={`${selectedMonth}월 지출`} value={formatCurrency(currentMonthExpenditure)} />
+          <SummaryCard icon={<DollarSign />} color="green" label={`${selectedMonth}월 순익`} value={formatCurrency(currentMonthNetProfit)} />
+          <SummaryCard icon={<Percent />} color="purple" label={`${selectedMonth}월 매입율`} value={`${currentMonthPurchaseRatio}%`} />
+          <SummaryCard icon={<Percent />} color="indigo" label={`${selectedMonth}월 수익률`} value={`${currentMonthProfitRatio}%`} />
         </div>
 
         <DailyRevenueSummary 
@@ -569,7 +582,15 @@ export default function App() {
 }
 
 function SummaryCard({ icon, color, label, value, subtext }: any) {
-  const colors: any = { blue: "bg-blue-50 text-blue-600", orange: "bg-orange-50 text-orange-600", red: "bg-red-50 text-red-600", green: "bg-green-50 text-green-600", purple: "bg-purple-50 text-purple-600" };
+  const colors: any = { 
+    blue: "bg-blue-50 text-blue-600", 
+    orange: "bg-orange-50 text-orange-600", 
+    red: "bg-red-50 text-red-600", 
+    green: "bg-green-50 text-green-600", 
+    purple: "bg-purple-50 text-purple-600",
+    indigo: "bg-indigo-50 text-indigo-600",
+    emerald: "bg-emerald-50 text-emerald-600"
+  };
   return (
     <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem]">
       <CardContent className="p-8">
