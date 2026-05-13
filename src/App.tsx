@@ -363,7 +363,7 @@ export default function App() {
           </button>
         </header>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           <SummaryCard icon={<TrendingUp />} color="blue" label="연간 총 매출액" value={formatCurrency(yearlyRevenue)} />
           <SummaryCard icon={<ShoppingBag />} color="orange" label="연간 총 매입액" value={formatCurrency(yearlyPurchase)} subtext={`매출대비 ${yearlyPurchaseRatio}%`} />
           <SummaryCard icon={<TrendingDown />} color="red" label="연간 총 지출액" value={formatCurrency(yearlyExpenditure)} />
@@ -453,7 +453,7 @@ export default function App() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           <SummaryCard icon={<TrendingUp />} color="blue" label={`${selectedMonth}월 매출`} value={formatCurrency(currentMonthRevenue)} />
           <SummaryCard icon={<ShoppingBag />} color="orange" label={`${selectedMonth}월 매입`} value={formatCurrency(currentMonthPurchase)} />
           <SummaryCard icon={<TrendingDown />} color="red" label={`${selectedMonth}월 지출`} value={formatCurrency(currentMonthExpenditure)} />
@@ -545,12 +545,13 @@ function SummaryCard({ icon, color, label, value, subtext }: any) {
     emerald: "bg-emerald-50 text-emerald-600"
   };
   return (
-    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem]">
-      <CardContent className="p-8 flex items-center gap-5">
-        <div className={`p-4 rounded-2xl ${colors[color]}`}>{React.cloneElement(icon, { size: 28 })}</div>
-        <div>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-          <h3 className="text-xl font-black text-slate-900">{value}</h3>
+    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem] overflow-hidden">
+      <CardContent className="p-4 md:p-5 flex items-center gap-3">
+        <div className={`p-3 rounded-2xl shrink-0 ${colors[color]}`}>{React.cloneElement(icon, { size: 22 })}</div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5 truncate">{label}</p>
+          <h3 className="text-sm md:text-base lg:text-lg font-black text-slate-900 leading-tight">{value}</h3>
+          {subtext && <p className="text-[8px] font-bold text-slate-400 mt-0.5">{subtext}</p>}
         </div>
       </CardContent>
     </Card>
