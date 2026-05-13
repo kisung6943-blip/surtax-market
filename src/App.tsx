@@ -676,6 +676,11 @@ function DailyAdSummary({ ads, month, onUpdateAd }: any) {
     const total = categories.reduce((sum, cat) => sum + getAmt(cat), 0);
     return { day, getAmt, total };
   });
+  const columnTotals = categories.map(cat => 
+    (ads || []).filter((e: any) => e.vendor === cat).reduce((sum: number, e: any) => sum + e.amount, 0)
+  );
+  const grandTotal = columnTotals.reduce((sum, val) => sum + val, 0);
+
   return (
     <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem] overflow-hidden">
       <CardHeader className="bg-slate-900 text-white pb-6 pt-8">
@@ -691,15 +696,43 @@ function DailyAdSummary({ ads, month, onUpdateAd }: any) {
               {dailyData.map(d => (
                 <tr key={d.day} className={`hover:bg-slate-50 ${d.total > 0 ? "bg-white" : "bg-slate-50/20 opacity-60"}`}>
                   <td className="px-6 py-4 font-black text-base text-slate-900">{d.day}일</td>
-                  {categories.map(cat => (
+                  {categories.map((cat, catIdx) => (
                     <td key={cat} className="px-2 py-2">
-                      <input type="text" value={d.getAmt(cat) ? d.getAmt(cat).toLocaleString() : ""} onChange={(e) => onUpdateAd(d.day, cat, parseInt(e.target.value.replace(/[^0-9-]/g, "")) || 0)} className="w-full bg-transparent border-none text-center font-black text-base text-blue-600 outline-none" placeholder="0" />
+                      <input 
+                        id={`ad-input-${catIdx}-${days.indexOf(d.day)}`}
+                        type="text" 
+                        value={d.getAmt(cat) ? d.getAmt(cat).toLocaleString() : ""} 
+                        onChange={(e) => onUpdateAd(d.day, cat, parseInt(e.target.value.replace(/[^0-9-]/g, "")) || 0)} 
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const nextId = `ad-input-${catIdx}-${days.indexOf(d.day) + 1}`;
+                            const nextEl = document.getElementById(nextId);
+                            if (nextEl) (nextEl as HTMLInputElement).focus();
+                          }
+                        }}
+                        className="w-full bg-transparent border-none text-center font-black text-base text-blue-600 outline-none" 
+                        placeholder="0" 
+                      />
                     </td>
                   ))}
                   <td className="px-6 py-4 font-black text-right text-slate-900">{d.total.toLocaleString()}원</td>
                 </tr>
               ))}
             </tbody>
+            <tfoot className="bg-slate-900 text-white font-black sticky bottom-0 border-t border-slate-700">
+              <tr>
+                <td className="px-6 py-5 text-base">합계</td>
+                {columnTotals.map((total, i) => (
+                  <td key={i} className="px-2 py-5 text-center text-purple-300 text-base">
+                    {total.toLocaleString()}
+                  </td>
+                ))}
+                <td className="px-6 py-5 text-right text-emerald-400 text-lg">
+                  {grandTotal.toLocaleString()}원
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </CardContent>
@@ -716,6 +749,11 @@ function DailyRevenueSummary({ revenues, month, onUpdateRevenue }: any) {
     const total = revCategories.reduce((sum, cat) => sum + getAmt(cat), 0);
     return { day, getAmt, total };
   });
+  const columnTotals = revCategories.map(cat => 
+    revenues.filter((e: any) => e.category === cat).reduce((sum: number, e: any) => sum + e.amount, 0)
+  );
+  const grandTotal = columnTotals.reduce((sum, val) => sum + val, 0);
+
   return (
     <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem] overflow-hidden">
       <CardHeader className="bg-slate-900 text-white pb-6 pt-8">
@@ -731,15 +769,43 @@ function DailyRevenueSummary({ revenues, month, onUpdateRevenue }: any) {
               {dailyData.map(d => (
                 <tr key={d.day} className={`hover:bg-slate-50 ${d.total > 0 ? "bg-white" : "bg-slate-50/20 opacity-60"}`}>
                   <td className="px-4 py-4 font-black text-base text-slate-900">{d.day}일</td>
-                  {revCategories.map(cat => (
+                  {revCategories.map((cat, catIdx) => (
                     <td key={cat} className="px-1 py-2">
-                      <input type="text" value={d.getAmt(cat) ? d.getAmt(cat).toLocaleString() : ""} onChange={(e) => onUpdateRevenue(d.day, cat, parseInt(e.target.value.replace(/[^0-9-]/g, "")) || 0)} className="w-full bg-transparent border-none text-center font-black text-base text-blue-600 outline-none" placeholder="0" />
+                      <input 
+                        id={`rev-input-${catIdx}-${days.indexOf(d.day)}`}
+                        type="text" 
+                        value={d.getAmt(cat) ? d.getAmt(cat).toLocaleString() : ""} 
+                        onChange={(e) => onUpdateRevenue(d.day, cat, parseInt(e.target.value.replace(/[^0-9-]/g, "")) || 0)} 
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const nextId = `rev-input-${catIdx}-${days.indexOf(d.day) + 1}`;
+                            const nextEl = document.getElementById(nextId);
+                            if (nextEl) (nextEl as HTMLInputElement).focus();
+                          }
+                        }}
+                        className="w-full bg-transparent border-none text-center font-black text-base text-blue-600 outline-none" 
+                        placeholder="0" 
+                      />
                     </td>
                   ))}
                   <td className="px-4 py-4 font-black text-right text-slate-900">{d.total.toLocaleString()}원</td>
                 </tr>
               ))}
             </tbody>
+            <tfoot className="bg-slate-900 text-white font-black sticky bottom-0 border-t border-slate-700">
+              <tr>
+                <td className="px-4 py-5 text-base">합계</td>
+                {columnTotals.map((total, i) => (
+                  <td key={i} className="px-1 py-5 text-center text-blue-300 text-base">
+                    {total.toLocaleString()}
+                  </td>
+                ))}
+                <td className="px-4 py-5 text-right text-emerald-400 text-lg whitespace-nowrap">
+                  {grandTotal.toLocaleString()}원
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </CardContent>
