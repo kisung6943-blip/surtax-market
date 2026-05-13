@@ -72,6 +72,7 @@ export default function App() {
   const [data, setData] = useState<MonthData[]>(getInitialData());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'done' | 'error'>('idle');
+  const [isLoading, setIsLoading] = useState(true);
   
   const calculateTotal = (items: any[]) => items?.reduce((sum, r) => sum + r.amount, 0) || 0;
 
@@ -163,6 +164,7 @@ export default function App() {
             setData(migrated);
           }
         }
+        setIsLoading(false);
       } catch (e) {
         console.error("Supabase load failed", e);
         const savedData = localStorage.getItem('surtax_market_data_es');
@@ -174,7 +176,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (data.length === 0) return;
+    if (isLoading || data.length === 0) return;
     
     localStorage.setItem('surtax_market_data_es', JSON.stringify(data));
 
@@ -280,6 +282,39 @@ export default function App() {
     }
   };
 
+  const handleExport = () => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `surtax_market_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const importedData = JSON.parse(event.target?.result as string);
+        if (Array.isArray(importedData) && importedData.length === 12) {
+          if (window.confirm("기존 데이터를 덮어쓰고 백업 데이터를 복원하시겠습니까?")) {
+            setData(importedData);
+            alert("데이터 복원이 완료되었습니다.");
+          }
+        } else {
+          alert("올바른 백업 파일이 아닙니다.");
+        }
+      } catch (err) {
+        alert("파일 읽기 중 오류가 발생했습니다.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ""; // Reset input
+  };
+
   const yearlyRevenue = data.reduce((sum, m) => sum + calculateTotal(m.revenues), 0);
   const yearlyGeneralPurchase = data.reduce((sum, m) => sum + calculateTotal(m.purchases), 0);
   const yearlyAdTotal = data.reduce((sum, m) => sum + calculateTotal(m.ads), 0);
@@ -358,9 +393,18 @@ export default function App() {
             </div>
             <button onClick={handleLogout} className="p-2 text-slate-300 hover:text-blue-500"><Unlock className="w-5 h-5" /></button>
           </div>
-          <button onClick={handleReset} className="px-4 py-2 text-xs font-black text-red-500 hover:bg-red-50 rounded-lg border border-red-100 flex items-center gap-2">
-            <Trash2 className="w-3 h-3" /> 데이터 초기화
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={handleExport} className="px-4 py-2 text-xs font-black text-blue-600 hover:bg-blue-50 rounded-lg border border-blue-100 flex items-center gap-2">
+              <Download className="w-3 h-3" /> 데이터 백업
+            </button>
+            <label className="px-4 py-2 text-xs font-black text-emerald-600 hover:bg-emerald-50 rounded-lg border border-emerald-100 flex items-center gap-2 cursor-pointer">
+              <Plus className="w-3 h-3" /> 데이터 복구
+              <input type="file" accept=".json" onChange={handleImport} className="hidden" />
+            </label>
+            <button onClick={handleReset} className="px-4 py-2 text-xs font-black text-red-500 hover:bg-red-50 rounded-lg border border-red-100 flex items-center gap-2">
+              <Trash2 className="w-3 h-3" /> 데이터 초기화
+            </button>
+          </div>
         </header>
 
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
