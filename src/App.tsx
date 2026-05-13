@@ -72,6 +72,8 @@ export default function App() {
   const [data, setData] = useState<MonthData[]>(getInitialData());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'done' | 'error'>('idle');
+  
+  const calculateTotal = (items: any[]) => items?.reduce((sum, r) => sum + r.amount, 0) || 0;
 
   // Form states
   const [newRevDay, setNewRevDay] = useState(new Date().getDate().toString().padStart(2, '0'));
@@ -286,7 +288,6 @@ export default function App() {
   const yearlyNetProfit = yearlyRevenue - yearlyPurchase - yearlyExpenditure;
   const yearlyPurchaseRatio = yearlyRevenue > 0 ? ((yearlyPurchase / yearlyRevenue) * 100).toFixed(1) : "0.0";
 
-  const calculateTotal = (items: any[]) => items?.reduce((sum, r) => sum + r.amount, 0) || 0;
 
   const currentMonthData = data.find(d => d.month === selectedMonth)!;
   const currentMonthRevenue = calculateTotal(currentMonthData.revenues);
