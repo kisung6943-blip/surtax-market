@@ -278,9 +278,11 @@ export default function App() {
     }
   };
 
-  const yearlyRevenue = data.reduce((sum, m) => sum + m.revenues.reduce((s, r) => s + r.amount, 0), 0);
-  const yearlyPurchase = data.reduce((sum, m) => sum + m.purchases.reduce((s, p) => s + p.amount, 0), 0);
-  const yearlyExpenditure = data.reduce((sum, m) => sum + m.expenditures.reduce((s, e) => s + e.amount, 0), 0);
+  const yearlyRevenue = data.reduce((sum, m) => sum + calculateTotal(m.revenues), 0);
+  const yearlyGeneralPurchase = data.reduce((sum, m) => sum + calculateTotal(m.purchases), 0);
+  const yearlyAdTotal = data.reduce((sum, m) => sum + calculateTotal(m.ads), 0);
+  const yearlyPurchase = yearlyGeneralPurchase + yearlyAdTotal;
+  const yearlyExpenditure = data.reduce((sum, m) => sum + calculateTotal(m.expenditures), 0);
   const yearlyNetProfit = yearlyRevenue - yearlyPurchase - yearlyExpenditure;
   const yearlyPurchaseRatio = yearlyRevenue > 0 ? ((yearlyPurchase / yearlyRevenue) * 100).toFixed(1) : "0.0";
 
@@ -288,16 +290,20 @@ export default function App() {
 
   const currentMonthData = data.find(d => d.month === selectedMonth)!;
   const currentMonthRevenue = calculateTotal(currentMonthData.revenues);
-  const currentMonthPurchase = calculateTotal(currentMonthData.purchases);
+  const currentMonthGeneralPurchase = calculateTotal(currentMonthData.purchases);
+  const currentMonthAdTotal = calculateTotal(currentMonthData.ads);
+  const currentMonthPurchase = currentMonthGeneralPurchase + currentMonthAdTotal;
   const currentMonthExpenditure = calculateTotal(currentMonthData.expenditures);
   const currentMonthNetProfit = currentMonthRevenue - (currentMonthPurchase + currentMonthExpenditure);
   const currentMonthPurchaseRatio = currentMonthRevenue > 0 ? ((currentMonthPurchase / currentMonthRevenue) * 100).toFixed(1) : "0.0";
   const currentMonthProfitRatio = currentMonthRevenue > 0 ? ((currentMonthNetProfit / currentMonthRevenue) * 100).toFixed(1) : "0.0";
 
   const chartData = data.map(m => {
-    const rev = m.revenues.reduce((s, r) => s + r.amount, 0);
-    const pur = m.purchases.reduce((s, p) => s + p.amount, 0);
-    const exp = m.expenditures.reduce((s, e) => s + e.amount, 0);
+    const rev = calculateTotal(m.revenues);
+    const genPur = calculateTotal(m.purchases);
+    const ads = calculateTotal(m.ads);
+    const pur = genPur + ads;
+    const exp = calculateTotal(m.expenditures);
     return {
       month: m.month,
       revenue: rev,
@@ -478,6 +484,21 @@ export default function App() {
           </SectionCard>
 
           <SectionCard title={`${selectedMonth}월 매입 상세`} total={currentMonthPurchase} color="orange" icon={<ShoppingBag className="w-6 h-6 text-orange-500" />}>
+            <div className="mb-6 grid grid-cols-1 gap-2 bg-white/50 p-4 rounded-2xl border border-orange-100/50">
+              <div className="flex justify-between items-center text-sm">
+                <span className="font-black text-slate-500">일반 매입</span>
+                <span className="font-black text-slate-900">{formatCurrency(currentMonthGeneralPurchase)}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="font-black text-slate-500">광고비</span>
+                <span className="font-black text-orange-500">{formatCurrency(currentMonthAdTotal)}</span>
+              </div>
+              <div className="pt-2 mt-2 border-t border-slate-100 flex justify-between items-center">
+                <span className="font-black text-slate-900">합계 매입</span>
+                <span className="text-lg font-black text-orange-600">{formatCurrency(currentMonthPurchase)}</span>
+              </div>
+            </div>
+
             <form onSubmit={(e) => { e.preventDefault(); handleAddPurchase(selectedMonth); }} className="space-y-4 mb-8 bg-orange-50/50 p-6 rounded-3xl border border-orange-100">
               <div className="grid grid-cols-2 gap-4">
                 <DaySelect value={newPurDay} onChange={setNewPurDay} month={selectedMonth} />
