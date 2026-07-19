@@ -45,7 +45,8 @@ const depositCategories = [
   'toss',
   '톡체크아웃',
   '스토어팜정산',
-  'NS홈쇼핑'
+  'NS홈쇼핑',
+  '스마일페이먼츠'
 ];
 
 interface Entry {
@@ -868,6 +869,7 @@ function DailyDepositSummary({ deposits, month, onUpdateDeposit }: any) {
     if (name === 'kg모바일') return 'kg\n모바일';
     if (name === 'npay정산') return 'npay\n정산';
     if (name === 'NS홈쇼핑') return 'NS\n홈쇼핑';
+    if (name === '스마일페이먼츠') return '스마일\n페이먼츠';
     return name;
   };
 
@@ -878,7 +880,7 @@ function DailyDepositSummary({ deposits, month, onUpdateDeposit }: any) {
       </CardHeader>
       <CardContent className="p-0">
         <div className="max-h-[400px] overflow-x-auto overflow-y-auto">
-          <table className="w-full text-sm text-left table-fixed min-w-[1090px] md:min-w-0">
+          <table className="w-full text-sm text-left table-fixed min-w-[1160px] md:min-w-0">
             <thead className="bg-slate-100 sticky top-0 font-black text-slate-900 uppercase tracking-tight border-b border-slate-200">
               <tr>
                 <th className="px-1 py-3 text-[11px] text-center w-[45px]">날짜</th>
