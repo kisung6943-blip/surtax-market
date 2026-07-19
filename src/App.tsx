@@ -354,6 +354,7 @@ export default function App() {
   const yearlyExpenditure = data.reduce((sum, m) => sum + calculateTotal(m.expenditures), 0);
   const yearlyNetProfit = yearlyRevenue - yearlyPurchase - yearlyExpenditure;
   const yearlyPurchaseRatio = yearlyRevenue > 0 ? ((yearlyPurchase / yearlyRevenue) * 100).toFixed(1) : "0.0";
+  const yearlyDeposit = data.reduce((sum, m) => sum + (m.deposits?.reduce((s, d) => s + d.amount, 0) || 0), 0);
 
 
   const currentMonthData = data.find(d => d.month === selectedMonth)!;
@@ -365,6 +366,7 @@ export default function App() {
   const currentMonthNetProfit = currentMonthRevenue - (currentMonthPurchase + currentMonthExpenditure);
   const currentMonthPurchaseRatio = currentMonthRevenue > 0 ? ((currentMonthPurchase / currentMonthRevenue) * 100).toFixed(1) : "0.0";
   const currentMonthProfitRatio = currentMonthRevenue > 0 ? ((currentMonthNetProfit / currentMonthRevenue) * 100).toFixed(1) : "0.0";
+  const currentMonthDeposit = currentMonthData.deposits?.reduce((sum, d) => sum + d.amount, 0) || 0;
 
   const chartData = data.map(m => {
     const rev = calculateTotal(m.revenues);
@@ -439,11 +441,12 @@ export default function App() {
           </div>
         </header>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4">
           <SummaryCard icon={<TrendingUp />} color="blue" label="연간 총 매출액" value={formatCurrency(yearlyRevenue)} />
           <SummaryCard icon={<ShoppingBag />} color="orange" label="연간 총 매입액" value={formatCurrency(yearlyPurchase)} subtext={`매출대비 ${yearlyPurchaseRatio}%`} />
           <SummaryCard icon={<TrendingDown />} color="red" label="연간 총 지출액" value={formatCurrency(yearlyExpenditure)} />
           <SummaryCard icon={<DollarSign />} color="green" label="연간 순이익" value={formatCurrency(yearlyNetProfit)} />
+          <SummaryCard icon={<TrendingUp />} color="emerald" label="연간 총 입금액" value={formatCurrency(yearlyDeposit)} />
           <SummaryCard icon={<Percent />} color="purple" label="연간 매입율" value={`${yearlyPurchaseRatio}%`} subtext="매출 대비 매입" />
           <SummaryCard icon={<Percent />} color="indigo" label="연간 수익률" value={`${(yearlyRevenue > 0 ? (yearlyNetProfit / yearlyRevenue * 100).toFixed(1) : "0.0")}%`} subtext="매출 대비 순익" />
         </div>
@@ -529,11 +532,12 @@ export default function App() {
           ))}
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4">
           <SummaryCard icon={<TrendingUp />} color="blue" label={`${selectedMonth}월 매출`} value={formatCurrency(currentMonthRevenue)} />
           <SummaryCard icon={<ShoppingBag />} color="orange" label={`${selectedMonth}월 매입`} value={formatCurrency(currentMonthPurchase)} />
           <SummaryCard icon={<TrendingDown />} color="red" label={`${selectedMonth}월 지출`} value={formatCurrency(currentMonthExpenditure)} />
           <SummaryCard icon={<DollarSign />} color="green" label={`${selectedMonth}월 순익`} value={formatCurrency(currentMonthNetProfit)} />
+          <SummaryCard icon={<TrendingUp />} color="emerald" label={`${selectedMonth}월 입금액`} value={formatCurrency(currentMonthDeposit)} />
           <SummaryCard icon={<Percent />} color="purple" label={`${selectedMonth}월 매입율`} value={`${currentMonthPurchaseRatio}%`} />
           <SummaryCard icon={<Percent />} color="indigo" label={`${selectedMonth}월 수익률`} value={`${currentMonthProfitRatio}%`} />
         </div>
