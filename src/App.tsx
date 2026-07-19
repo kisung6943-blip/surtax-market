@@ -858,27 +858,40 @@ function DailyDepositSummary({ deposits, month, onUpdateDeposit }: any) {
   );
   const grandTotal = columnTotals.reduce((sum, val) => sum + val, 0);
 
+  const formatHeader = (name: string) => {
+    if (name === '11번가 빠른정산') return '11번가\n빠른정산';
+    if (name === '스토어팜정산') return '스토어팜\n정산';
+    if (name === '톡체크아웃') return '톡\n체크아웃';
+    if (name === 'kg이니시스') return 'kg\n이니시스';
+    if (name === 'npay정산') return 'npay\n정산';
+    return name;
+  };
+
   return (
     <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem] overflow-hidden">
-      <CardHeader className="bg-slate-900 text-white pb-6 pt-8">
-        <CardTitle className="text-xl font-black flex items-center gap-2"><TrendingUp className="w-6 h-6 text-emerald-400" /> {month}월 입금금액 일별 요약</CardTitle>
+      <CardHeader className="bg-slate-900 text-white pb-4 pt-6">
+        <CardTitle className="text-lg font-black flex items-center gap-2"><TrendingUp className="w-5 h-5 text-emerald-400" /> {month}월 입금금액 일별 요약</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <div className="max-h-[400px] overflow-x-auto overflow-y-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-slate-100 sticky top-0 font-black text-xs text-slate-900 uppercase tracking-tight border-b border-slate-200">
+          <table className="w-full text-sm text-left table-fixed min-w-[950px] md:min-w-0">
+            <thead className="bg-slate-100 sticky top-0 font-black text-slate-900 uppercase tracking-tight border-b border-slate-200">
               <tr>
-                <th className="px-4 py-5 min-w-[70px]">날짜</th>
-                {depositCategories.map(vendor => <th key={vendor} className="px-2 py-5 min-w-[120px] text-center text-emerald-700">{vendor}</th>)}
-                <th className="px-4 py-5 text-right bg-slate-900 text-white whitespace-nowrap">총액</th>
+                <th className="px-1 py-3 text-[10px] text-center w-[45px]">날짜</th>
+                {depositCategories.map(vendor => (
+                  <th key={vendor} className="px-0.5 py-2 text-[9px] leading-tight text-center text-emerald-700 whitespace-pre-line">
+                    {formatHeader(vendor)}
+                  </th>
+                ))}
+                <th className="px-1 py-3 text-right text-[10px] bg-slate-900 text-white w-[90px] whitespace-nowrap">총액</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {dailyData.map(d => (
                 <tr key={d.day} className={`hover:bg-slate-50 ${d.total > 0 ? "bg-white" : "bg-slate-50/20 opacity-60"}`}>
-                  <td className="px-4 py-4 font-black text-base text-slate-900">{d.day}일</td>
+                  <td className="px-1 py-1 font-black text-[11px] text-slate-900 text-center">{parseInt(d.day)}일</td>
                   {depositCategories.map((vendor, vendorIdx) => (
-                    <td key={vendor} className="px-1 py-2">
+                    <td key={vendor} className="px-0.5 py-0.5">
                       <input 
                         id={`dep-input-${vendorIdx}-${days.indexOf(d.day)}`}
                         type="text" 
@@ -892,24 +905,24 @@ function DailyDepositSummary({ deposits, month, onUpdateDeposit }: any) {
                             if (nextEl) (nextEl as HTMLInputElement).focus();
                           }
                         }}
-                        className="w-full bg-transparent border-none text-center font-black text-base text-emerald-600 outline-none min-w-[100px]" 
+                        className="w-full bg-transparent border-none text-center font-black text-[11px] text-emerald-600 outline-none px-0" 
                         placeholder="0" 
                       />
                     </td>
                   ))}
-                  <td className="px-4 py-4 font-black text-right text-slate-900 whitespace-nowrap">{d.total.toLocaleString()}원</td>
+                  <td className="px-1 py-1 font-black text-right text-[11px] text-slate-900 whitespace-nowrap">{d.total.toLocaleString()}원</td>
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-slate-900 text-white font-black sticky bottom-0 border-t border-slate-700">
+            <tfoot className="bg-slate-900 text-white font-black sticky bottom-0 border-t border-slate-700 text-[10px]">
               <tr>
-                <td className="px-4 py-5 text-base">합계</td>
+                <td className="px-1 py-3 text-center">합계</td>
                 {columnTotals.map((total, i) => (
-                  <td key={i} className="px-1 py-5 text-center text-emerald-300 text-base">
+                  <td key={i} className="px-0.5 py-3 text-center text-emerald-300">
                     {total.toLocaleString()}
                   </td>
                 ))}
-                <td className="px-4 py-5 text-right text-emerald-400 text-lg whitespace-nowrap">
+                <td className="px-1 py-3 text-right text-emerald-400 text-xs whitespace-nowrap">
                   {grandTotal.toLocaleString()}원
                 </td>
               </tr>
