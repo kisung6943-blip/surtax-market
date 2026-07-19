@@ -877,19 +877,19 @@ function DailyDepositSummary({ deposits, month, onUpdateDeposit }: any) {
           <table className="w-full text-sm text-left table-fixed min-w-[950px] md:min-w-0">
             <thead className="bg-slate-100 sticky top-0 font-black text-slate-900 uppercase tracking-tight border-b border-slate-200">
               <tr>
-                <th className="px-1 py-3 text-[10px] text-center w-[45px]">날짜</th>
+                <th className="px-1 py-3 text-[11px] text-center w-[45px]">날짜</th>
                 {depositCategories.map(vendor => (
-                  <th key={vendor} className="px-0.5 py-2 text-[9px] leading-tight text-center text-emerald-700 whitespace-pre-line">
+                  <th key={vendor} className="px-0.5 py-2 text-[10px] leading-tight text-center text-emerald-700 whitespace-pre-line">
                     {formatHeader(vendor)}
                   </th>
                 ))}
-                <th className="px-1 py-3 text-right text-[10px] bg-slate-900 text-white w-[90px] whitespace-nowrap">총액</th>
+                <th className="px-1 py-3 text-right text-[11px] bg-slate-900 text-white w-[90px] whitespace-nowrap">총액</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {dailyData.map(d => (
                 <tr key={d.day} className={`hover:bg-slate-50 ${d.total > 0 ? "bg-white" : "bg-slate-50/20 opacity-60"}`}>
-                  <td className="px-1 py-1 font-black text-[11px] text-slate-900 text-center">{parseInt(d.day)}일</td>
+                  <td className="px-1 py-1 font-black text-[12px] text-slate-900 text-center">{parseInt(d.day)}일</td>
                   {depositCategories.map((vendor, vendorIdx) => (
                     <td key={vendor} className="px-0.5 py-0.5">
                       <input 
@@ -905,24 +905,24 @@ function DailyDepositSummary({ deposits, month, onUpdateDeposit }: any) {
                             if (nextEl) (nextEl as HTMLInputElement).focus();
                           }
                         }}
-                        className="w-full bg-transparent border-none text-center font-black text-[11px] text-emerald-600 outline-none px-0" 
+                        className="w-full bg-transparent border-none text-center font-black text-[12px] text-emerald-600 outline-none px-0" 
                         placeholder="0" 
                       />
                     </td>
                   ))}
-                  <td className="px-1 py-1 font-black text-right text-[11px] text-slate-900 whitespace-nowrap">{d.total.toLocaleString()}원</td>
+                  <td className="px-1 py-1 font-black text-right text-[12px] text-slate-900 whitespace-nowrap">{d.total.toLocaleString()}원</td>
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-slate-900 text-white font-black sticky bottom-0 border-t border-slate-700 text-[10px]">
+            <tfoot className="bg-slate-900 text-white font-black sticky bottom-0 border-t border-slate-700 text-[11px]">
               <tr>
                 <td className="px-1 py-3 text-center">합계</td>
                 {columnTotals.map((total, i) => (
-                  <td key={i} className="px-0.5 py-3 text-center text-emerald-300">
+                  <td key={i} className="px-0.5 py-3 text-center text-emerald-300 text-[11px]">
                     {total.toLocaleString()}
                   </td>
                 ))}
-                <td className="px-1 py-3 text-right text-emerald-400 text-xs whitespace-nowrap">
+                <td className="px-1 py-3 text-right text-emerald-400 text-[13px] whitespace-nowrap">
                   {grandTotal.toLocaleString()}원
                 </td>
               </tr>
