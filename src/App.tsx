@@ -40,6 +40,7 @@ const depositCategories = [
   '11번가 빠른정산',
   '11번가',
   'kg이니시스',
+  'kg모바일',
   '에이블리',
   'toss',
   '톡체크아웃',
@@ -863,6 +864,7 @@ function DailyDepositSummary({ deposits, month, onUpdateDeposit }: any) {
     if (name === '스토어팜정산') return '스토어팜\n정산';
     if (name === '톡체크아웃') return '톡\n체크아웃';
     if (name === 'kg이니시스') return 'kg\n이니시스';
+    if (name === 'kg모바일') return 'kg\n모바일';
     if (name === 'npay정산') return 'npay\n정산';
     return name;
   };
@@ -874,7 +876,7 @@ function DailyDepositSummary({ deposits, month, onUpdateDeposit }: any) {
       </CardHeader>
       <CardContent className="p-0">
         <div className="max-h-[400px] overflow-x-auto overflow-y-auto">
-          <table className="w-full text-sm text-left table-fixed min-w-[950px] md:min-w-0">
+          <table className="w-full text-sm text-left table-fixed min-w-[1020px] md:min-w-0">
             <thead className="bg-slate-100 sticky top-0 font-black text-slate-900 uppercase tracking-tight border-b border-slate-200">
               <tr>
                 <th className="px-1 py-3 text-[11px] text-center w-[45px]">날짜</th>
