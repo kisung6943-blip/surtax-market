@@ -30,6 +30,22 @@ import { supabase } from './lib/supabase';
 type RevenueCategory = '11번가' | 'G마켓' | 'NS홈쇼핑' | '스마트스토어' | '에이블리' | '오늘의집' | '옥션' | '카페24' | '쿠팡(자동)' | '토스쇼핑' | '도매' | '쿠팡로켓' | '현금입금' | '기타';
 const revCategories: RevenueCategory[] = ['11번가', 'G마켓', 'NS홈쇼핑', '스마트스토어', '에이블리', '오늘의집', '옥션', '카페24', '쿠팡(자동)', '토스쇼핑', '도매', '쿠팡로켓', '현금입금', '기타'];
 
+const depositCategories = [
+  '오늘의집',
+  '쿠팡(주)',
+  '쿠팡페이',
+  '옥션',
+  '지마켓',
+  'npay정산',
+  '11번가 빠른정산',
+  '11번가',
+  'kg이니시스',
+  '에이블리',
+  'toss',
+  '톡체크아웃',
+  '스토어팜정산'
+];
+
 interface Entry {
   id: string;
   date: string;
@@ -52,6 +68,7 @@ interface MonthData {
   purchases: Entry[];
   expenditures: Entry[];
   ads: Entry[];
+  deposits?: Entry[];
 }
 
 const getInitialData = (): MonthData[] => {
@@ -61,6 +78,7 @@ const getInitialData = (): MonthData[] => {
     purchases: [],
     expenditures: [],
     ads: [],
+    deposits: [],
   }));
 };
 
@@ -130,7 +148,8 @@ export default function App() {
                 if (cat === '오늘의집매출') cat = '오늘의집';
                 if (cat === '쿠팡윙' || cat === '쿠팡로켓배송') cat = '쿠팡(자동)';
                 return { ...r, category: cat };
-              })
+              }),
+              deposits: m.deposits || []
             };
           });
           setData(migrated);
@@ -158,7 +177,8 @@ export default function App() {
                   if (cat === '오늘의집매출') cat = '오늘의집';
                   if (cat === '쿠팡윙' || cat === '쿠팡로켓배송') cat = '쿠팡(자동)';
                   return { ...r, category: cat };
-                })
+                }),
+                deposits: m.deposits || []
               };
             });
             setData(migrated);
@@ -269,6 +289,15 @@ export default function App() {
       
       if (amt === 0) return { ...m, ads: otherAds, purchases: cleanPurchases };
       return { ...m, ads: [...otherAds, { id: `ad_${day}_${vendor}`, date: day, vendor, amount: amt }], purchases: cleanPurchases };
+    }));
+  };
+
+  const handleUpdateDeposit = (month: number, day: string, vendor: string, amt: number) => {
+    setData(prev => prev.map(m => {
+      if (m.month !== month) return m;
+      const otherDeposits = (m.deposits || []).filter(d => !(d.date === day && d.vendor === vendor));
+      if (amt === 0) return { ...m, deposits: otherDeposits };
+      return { ...m, deposits: [...otherDeposits, { id: `dep_${day}_${vendor}`, date: day, vendor, amount: amt }] };
     }));
   };
 
@@ -573,6 +602,8 @@ export default function App() {
             <ItemList items={currentMonthData.expenditures} onRemove={(id) => handleRemoveItem(selectedMonth, id, 'expenditures')} color="red" />
           </SectionCard>
         </div>
+
+        <DailyDepositSummary deposits={currentMonthData.deposits || []} month={selectedMonth} onUpdateDeposit={(day, vendor, amt) => handleUpdateDeposit(selectedMonth, day, vendor, amt)} />
       </div>
     </div>
   );
@@ -798,6 +829,83 @@ function DailyRevenueSummary({ revenues, month, onUpdateRevenue }: any) {
                 <td className="px-4 py-5 text-base">합계</td>
                 {columnTotals.map((total, i) => (
                   <td key={i} className="px-1 py-5 text-center text-blue-300 text-base">
+                    {total.toLocaleString()}
+                  </td>
+                ))}
+                <td className="px-4 py-5 text-right text-emerald-400 text-lg whitespace-nowrap">
+                  {grandTotal.toLocaleString()}원
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DailyDepositSummary({ deposits, month, onUpdateDeposit }: any) {
+  const daysInMonth = new Date(2026, month, 0).getDate();
+  const days = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
+  const dailyData = days.map(day => {
+    const dayDeps = (deposits || []).filter((e: any) => e.date === day);
+    const getAmt = (vendor: string) => dayDeps.filter((e: any) => e.vendor === vendor).reduce((sum: number, e: any) => sum + e.amount, 0);
+    const total = depositCategories.reduce((sum, vendor) => sum + getAmt(vendor), 0);
+    return { day, getAmt, total };
+  });
+  const columnTotals = depositCategories.map(vendor => 
+    (deposits || []).filter((e: any) => e.vendor === vendor).reduce((sum: number, e: any) => sum + e.amount, 0)
+  );
+  const grandTotal = columnTotals.reduce((sum, val) => sum + val, 0);
+
+  return (
+    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem] overflow-hidden">
+      <CardHeader className="bg-slate-900 text-white pb-6 pt-8">
+        <CardTitle className="text-xl font-black flex items-center gap-2"><TrendingUp className="w-6 h-6 text-emerald-400" /> {month}월 입금금액 일별 요약</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="max-h-[400px] overflow-x-auto overflow-y-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-100 sticky top-0 font-black text-xs text-slate-900 uppercase tracking-tight border-b border-slate-200">
+              <tr>
+                <th className="px-4 py-5 min-w-[70px]">날짜</th>
+                {depositCategories.map(vendor => <th key={vendor} className="px-2 py-5 min-w-[120px] text-center text-emerald-700">{vendor}</th>)}
+                <th className="px-4 py-5 text-right bg-slate-900 text-white whitespace-nowrap">총액</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {dailyData.map(d => (
+                <tr key={d.day} className={`hover:bg-slate-50 ${d.total > 0 ? "bg-white" : "bg-slate-50/20 opacity-60"}`}>
+                  <td className="px-4 py-4 font-black text-base text-slate-900">{d.day}일</td>
+                  {depositCategories.map((vendor, vendorIdx) => (
+                    <td key={vendor} className="px-1 py-2">
+                      <input 
+                        id={`dep-input-${vendorIdx}-${days.indexOf(d.day)}`}
+                        type="text" 
+                        value={d.getAmt(vendor) ? d.getAmt(vendor).toLocaleString() : ""} 
+                        onChange={(e) => onUpdateDeposit(d.day, vendor, parseInt(e.target.value.replace(/[^0-9-]/g, "")) || 0)} 
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const nextId = `dep-input-${vendorIdx}-${days.indexOf(d.day) + 1}`;
+                            const nextEl = document.getElementById(nextId);
+                            if (nextEl) (nextEl as HTMLInputElement).focus();
+                          }
+                        }}
+                        className="w-full bg-transparent border-none text-center font-black text-base text-emerald-600 outline-none min-w-[100px]" 
+                        placeholder="0" 
+                      />
+                    </td>
+                  ))}
+                  <td className="px-4 py-4 font-black text-right text-slate-900 whitespace-nowrap">{d.total.toLocaleString()}원</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="bg-slate-900 text-white font-black sticky bottom-0 border-t border-slate-700">
+              <tr>
+                <td className="px-4 py-5 text-base">합계</td>
+                {columnTotals.map((total, i) => (
+                  <td key={i} className="px-1 py-5 text-center text-emerald-300 text-base">
                     {total.toLocaleString()}
                   </td>
                 ))}
