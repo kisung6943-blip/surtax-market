@@ -627,12 +627,14 @@ function SummaryCard({ icon, color, label, value, subtext }: any) {
     emerald: "bg-emerald-50 text-emerald-600"
   };
   return (
-    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2rem] overflow-hidden">
-      <CardContent className="p-4 md:p-5 flex items-center gap-3">
-        <div className={`p-3 rounded-2xl shrink-0 ${colors[color]}`}>{React.cloneElement(icon, { size: 22 })}</div>
+    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[1.5rem] md:rounded-[2rem] overflow-hidden">
+      <CardContent className="p-3 md:p-4 flex items-center gap-2 md:gap-3">
+        <div className={`p-2 md:p-2.5 rounded-xl md:rounded-2xl shrink-0 ${colors[color]}`}>{React.cloneElement(icon, { size: 18 })}</div>
         <div className="min-w-0 flex-1">
           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5 truncate">{label}</p>
-          <h3 className="text-sm md:text-base lg:text-lg font-black text-slate-900 leading-tight">{value}</h3>
+          <h3 className="text-xs sm:text-sm md:text-base font-black text-slate-900 leading-tight whitespace-nowrap">
+            {value}
+          </h3>
           {subtext && <p className="text-[8px] font-bold text-slate-400 mt-0.5">{subtext}</p>}
         </div>
       </CardContent>
