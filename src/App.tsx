@@ -388,8 +388,8 @@ export default function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md my-12">
           <Card className="border-none bg-slate-800/50 backdrop-blur-xl shadow-2xl rounded-[2.5rem] overflow-hidden">
             <CardContent className="p-12 text-center">
               <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-lg shadow-blue-600/30">
@@ -403,6 +403,11 @@ export default function App() {
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Daily Calculator (쇼핑몰 판매자 전용 일일 정산 계산기) - 로그인 전에도 최하단에 항상 표출 */}
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 border-t-4 border-indigo-500 rounded-3xl overflow-hidden mt-12 mb-12" id="daily-calculator-section-unauth">
+          <DailyCalculator />
+        </div>
       </div>
     );
   }
