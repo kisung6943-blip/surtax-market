@@ -1,6 +1,7 @@
 import { DEPLOY_TRIGGER } from './trigger';
 console.log('Deploy Trigger:', DEPLOY_TRIGGER);
 
+import DailyCalculator from './components/dailyCalculator/DailyCalculator';
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   TrendingUp, 
@@ -611,6 +612,11 @@ export default function App() {
         </div>
 
         <DailyDepositSummary deposits={currentMonthData.deposits || []} month={selectedMonth} onUpdateDeposit={(day, vendor, amt) => handleUpdateDeposit(selectedMonth, day, vendor, amt)} />
+
+        {/* Daily Calculator (쇼핑몰 판매자 전용 일일 정산 계산기) Integration Section */}
+        <div className="pt-8 border-t-4 border-indigo-500 rounded-3xl overflow-hidden mt-12" id="daily-calculator-section">
+          <DailyCalculator />
+        </div>
       </div>
     </div>
   );
